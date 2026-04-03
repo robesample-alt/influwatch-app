@@ -6708,6 +6708,7 @@ async function loadPromoterDetail() {
             <div class="plat-icon ${esc(platCls)}" style="width:22px;height:22px;font-size:10px;border-radius:3px">${esc(platIcn)}</div>
             <div style="flex:1"><div style="font-size:11px;font-weight:500">@${esc(ambassador.handle)}</div><div style="font-size:9px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace">${esc(platLbl)}</div></div>
           </div>
+          <button id="phyllo-connect-btn" class="btn btn-secondary btn-sm" style="width:100%;margin-top:8px;text-align:center;justify-content:center" onclick="openPhylloConnect()">+ Connect Social Account</button>
         </div>
         <div style="padding:13px 16px">
           <div style="font-size:9px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);margin-bottom:9px">Capture Summary</div>
@@ -8961,9 +8962,9 @@ async function openPhylloConnect() {
   btn.textContent = 'Connecting...';
 
   try {
-    // Get SDK token from our backend
-    // TODO: pass the actual ambassadorId from the detail screen
-    const ambassadorId = 'AMB-001';
+    // Use the current ambassador from the detail screen
+    const ambassadorId = _currentAmbassadorId;
+    if (!ambassadorId) { throw new Error('No promoter selected'); }
 
     const res = await fetch(PHYLLO_API + '/connect', {
       method: 'POST',
