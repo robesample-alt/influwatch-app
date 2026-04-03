@@ -1232,6 +1232,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
           <div style="flex:1"><div style="font-size:11px;font-weight:500">@amaraosei</div><div style="font-size:9px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace">YouTube · 310K subscribers</div></div>
           <span class="stat stat-monitoring" style="font-size:8.5px">Active</span>
         </div>
+        <button id="phyllo-connect-btn" class="btn btn-secondary btn-sm" style="width:100%;margin-top:8px;text-align:center;justify-content:center" onclick="openPhylloConnect()">+ Connect Social Account</button>
       </div>
       <div style="padding:13px 16px;border-bottom:1px solid var(--border)">
         <div style="font-size:9px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);margin-bottom:9px">Certification</div>
@@ -8948,6 +8949,99 @@ async function loadReviewRecord() {
   <span>Created: March 05, 2026 at 01:52 UTC</span>
   <span>© 2026 InfluWatch — Unauthorized reproduction strictly prohibited</span>
 </div>
+
+<!-- Phyllo Connect SDK -->
+<script src="https://cdn.getphyllo.com/connect/v2/phyllo-connect.js"></script>
+<script>
+const PHYLLO_API = 'https://influwatch-backend.onrender.com/api/influwatch/phyllo';
+
+async function openPhylloConnect() {
+  const btn = document.getElementById('phyllo-connect-btn');
+  btn.disabled = true;
+  btn.textContent = 'Connecting...';
+
+  try {
+    // Get SDK token from our backend
+    // TODO: pass the actual ambassadorId from the detail screen
+    const ambassadorId = 'AMB-001';
+
+    const res = await fetch(PHYLLO_API + '/connect', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + authToken,
+      },
+      body: JSON.stringify({ ambassadorId }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to get SDK token');
+    }
+
+    const data = await res.json();
+
+    // Initialize Phyllo Connect widget
+    const config = {
+      clientDisplayName: 'InfluWatch',
+      environment: data.environment || 'staging',
+      userId: data.phylloUserId,
+      token: data.sdkToken,
+    };
+
+    const phylloConnect = PhylloConnect.initialize(config);
+
+    phylloConnect.on('accountConnected', async (accountId, workplatformId, userId) => {
+      console.log('Phyllo account connected:', accountId, workplatformId);
+
+      // Store the connected account on our backend
+      await fetch(PHYLLO_API + '/account', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + authToken,
+        },
+        body: JSON.stringify({ ambassadorId, phylloAccountId: accountId }),
+      });
+
+      btn.textContent = '✓ Account Connected';
+      btn.style.color = 'var(--green)';
+      btn.style.borderColor = 'var(--green)';
+    });
+
+    phylloConnect.on('accountDisconnected', (accountId, workplatformId, userId) => {
+      console.log('Phyllo account disconnected:', accountId);
+    });
+
+    phylloConnect.on('tokenExpired', (userId) => {
+      console.log('Phyllo token expired');
+      btn.disabled = false;
+      btn.textContent = '+ Connect Social Account';
+    });
+
+    phylloConnect.on('exit', (reason, userId) => {
+      console.log('Phyllo exit:', reason);
+      btn.disabled = false;
+      if (btn.textContent === 'Connecting...') {
+        btn.textContent = '+ Connect Social Account';
+      }
+    });
+
+    phylloConnect.on('connectionFailure', (reason, workplatformId, userId) => {
+      console.log('Phyllo connection failure:', reason);
+      btn.disabled = false;
+      btn.textContent = '+ Connect Social Account';
+    });
+
+    phylloConnect.open();
+  } catch (err) {
+    console.error('Phyllo connect error:', err);
+    btn.disabled = false;
+    btn.textContent = '+ Connect Social Account';
+    alert('Failed to open social connect: ' + err.message);
+  }
+}
+</script>
 
 </body>
 
