@@ -801,8 +801,8 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <div class="ph-sub" id="queue-subtitle">Loading review queue…</div>
     </div>
     <div class="ph-actions">
-      <select class="fi" style="width:130px"><option>All Severity</option><option>Critical</option><option>High</option><option>Medium</option><option>Low</option></select>
-      <select class="fi" style="width:130px"><option>All Status</option><option>Open</option><option>Under Review</option><option>Escalated</option></select>
+      <select id="queue-filter-severity" class="fi" style="width:130px" onchange="loadReviewQueue()"><option value="">All Severity</option><option value="CRITICAL">Critical</option><option value="HIGH">High</option><option value="MEDIUM">Medium</option><option value="LOW">Low</option></select>
+      <select id="queue-filter-status" class="fi" style="width:130px" onchange="loadReviewQueue()"><option value="">All Status</option><option value="CAPTURED">Captured</option><option value="PENDING_REVIEW">Pending Review</option><option value="ESCALATED">Escalated</option></select>
     </div>
   </div>
   <div style="overflow-y:auto;height:calc(100vh - 46px - 60px)">
@@ -5980,18 +5980,31 @@ async function loadReviewQueue() {
   tbody.innerHTML = '';
 
   try {
-    const res = await fetch(CONTENT_RECORDS_URL, {
+    // Build query params from filter controls
+    const statusFilter   = document.getElementById('queue-filter-status')?.value || '';
+    const severityFilter = document.getElementById('queue-filter-severity')?.value || '';
+    let url = CONTENT_RECORDS_URL + '?pageSize=200';
+    if (statusFilter) url += '&archiveStatus=' + encodeURIComponent(statusFilter);
+
+    const res = await fetch(url, {
       headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {},
     });
     if (!res.ok) throw new Error('HTTP ' + res.status + ' — ' + res.statusText);
     const data = await res.json();
     const all = Array.isArray(data) ? data : (data.data || data.records || []);
 
-    // Apply Phase-1 filter
-    const queue = all.filter(r => {
-      const s = (r.archiveStatus || '').toUpperCase();
-      return QUEUE_STATUSES.includes(s);
-    });
+    // If no status filter selected, show queue-relevant statuses only
+    let queue = statusFilter
+      ? all
+      : all.filter(r => {
+          const s = (r.archiveStatus || '').toUpperCase();
+          return ['CAPTURED', 'PENDING_REVIEW', 'ESCALATED'].includes(s);
+        });
+
+    // Client-side severity filter (until backend supports it)
+    if (severityFilter) {
+      queue = queue.filter(r => inferSeverity(r).toUpperCase() === severityFilter);
+    }
 
     // Sort: severity asc (critical first), then capturedAt desc
     queue.sort((a, b) => {
