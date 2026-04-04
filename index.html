@@ -6047,7 +6047,7 @@ async function loadReviewQueue() {
         <td><span class="sev ${sevClass}"><span class="sev-dot"></span>${esc(severity)}</span> <span style="font-size:8.5px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace" title="Inferred from archiveStatus — backend severity field not yet available">⚠ inferred</span></td>
         <td><span class="stat ${statClass}">${esc(status)}</span></td>
         <td class="mono" style="font-size:10px;white-space:nowrap">${esc(capturedAt)}</td>
-        <td><button class="btn btn-secondary btn-sm" onclick="go('review');event.stopPropagation()">→ Review</button></td>
+        <td><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();currentReviewRecordId='${esc(rec.id || '')}';window._currentReviewRec=null;go('review')">→ Review</button></td>
       `;
       tbody.appendChild(tr);
     });
