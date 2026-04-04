@@ -793,7 +793,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
 <!-- ════════════════════════════════════════
      REVIEW QUEUE
 ════════════════════════════════════════ -->
-<div id="screen-queue" class="screen">
+<div id="screen-queue" class="screen" style="display:flex;flex-direction:column;height:100%">
   <div class="ph">
     <div>
       <div class="ph-bc">InfluWatch / Supervision / Review Queue</div>
@@ -807,7 +807,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <select id="queue-filter-platform" class="fi" style="width:130px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Platforms</option><option value="YOUTUBE">YouTube</option><option value="INSTAGRAM">Instagram</option><option value="TIKTOK">TikTok</option><option value="TWITTER_X">Twitter/X</option><option value="FACEBOOK">Facebook</option><option value="LINKEDIN">LinkedIn</option></select>
     </div>
   </div>
-  <div style="overflow-y:auto;height:calc(100vh - 46px - 60px)">
+  <div style="overflow-y:auto;flex:1">
 
     <!-- Loading state -->
     <div id="queue-loading" style="padding:32px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted)">
@@ -841,11 +841,11 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <tbody id="queue-tbody"></tbody>
     </table>
 
-    <div class="pager" id="queue-pager" style="display:none;align-items:center;gap:12px">
-      <button class="btn btn-ghost btn-sm" id="queue-pager-prev" onclick="queuePage--;loadReviewQueue()">← Prev</button>
-      <span class="pg-info" id="queue-pager-info"></span>
-      <button class="btn btn-ghost btn-sm" id="queue-pager-next" onclick="queuePage++;loadReviewQueue()">Next →</button>
-    </div>
+  </div>
+  <div class="pager" id="queue-pager" style="display:none;align-items:center;gap:12px;padding:8px 18px;border-top:1px solid var(--border);background:var(--bg-surface)">
+    <button class="btn btn-ghost btn-sm" id="queue-pager-prev" onclick="queuePage--;loadReviewQueue()">← Prev</button>
+    <span class="pg-info" id="queue-pager-info"></span>
+    <button class="btn btn-ghost btn-sm" id="queue-pager-next" onclick="queuePage++;loadReviewQueue()">Next →</button>
   </div>
 </div>
 
@@ -1519,7 +1519,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
 <!-- ══════════════════════════════════════════════════════════════════ -->
 <!-- SCREEN: Captured Communications                                   -->
 <!-- ══════════════════════════════════════════════════════════════════ -->
-<div id="screen-captures" class="screen">
+<div id="screen-captures" class="screen" style="display:flex;flex-direction:column;height:100%">
   <div class="ph">
     <div>
       <div class="ph-bc">Monitoring › Captures</div>
@@ -1535,7 +1535,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
 
   <!-- Filter tabs removed — replaced by real dropdowns above -->
 
-  <div style="overflow-y:auto;height:calc(100vh - 46px - 60px - 42px)">
+  <div style="overflow-y:auto;flex:1">
 
     <!-- Loading state -->
     <div id="captures-loading" style="padding:32px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted)">
@@ -1569,11 +1569,11 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       No content records found.
     </div>
 
-    <div class="pager" id="captures-pager" style="display:none;align-items:center;gap:12px">
-      <button class="btn btn-ghost btn-sm" id="captures-pager-prev" onclick="capturesPage--;loadContentRecords()">← Prev</button>
-      <div class="pg-info" id="captures-pager-info"></div>
-      <button class="btn btn-ghost btn-sm" id="captures-pager-next" onclick="capturesPage++;loadContentRecords()">Next →</button>
-    </div>
+  </div>
+  <div class="pager" id="captures-pager" style="display:none;align-items:center;gap:12px;padding:8px 18px;border-top:1px solid var(--border);background:var(--bg-surface)">
+    <button class="btn btn-ghost btn-sm" id="captures-pager-prev" onclick="capturesPage--;loadContentRecords()">← Prev</button>
+    <div class="pg-info" id="captures-pager-info"></div>
+    <button class="btn btn-ghost btn-sm" id="captures-pager-next" onclick="capturesPage++;loadContentRecords()">Next →</button>
   </div>
 </div>
 
