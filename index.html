@@ -5991,6 +5991,7 @@ async function loadReviewQueue() {
     if (statusFilter)   url += '&archiveStatus=' + encodeURIComponent(statusFilter);
     if (promoterFilter) url += '&ambassadorId=' + encodeURIComponent(promoterFilter);
     if (platformFilter) url += '&sourcePlatform=' + encodeURIComponent(platformFilter);
+    if (severityFilter) url += '&severity=' + encodeURIComponent(severityFilter);
 
     const res = await fetch(url, {
       headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {},
@@ -6008,11 +6009,6 @@ async function loadReviewQueue() {
           const s = (r.archiveStatus || '').toUpperCase();
           return ['CAPTURED', 'PENDING_REVIEW', 'ESCALATED'].includes(s);
         });
-
-    // Client-side severity filter (until backend supports it)
-    if (severityFilter) {
-      queue = queue.filter(r => inferSeverity(r).toUpperCase() === severityFilter);
-    }
 
     // Sort: severity asc (critical first), then capturedAt desc
     queue.sort((a, b) => {
