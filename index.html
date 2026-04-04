@@ -124,7 +124,6 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg-base);color:var(
 .main{overflow-y:auto;min-height:0;background:var(--bg-base);position:relative;z-index:1}
 .screen{display:none;animation:fadeIn 0.15s ease}
 .screen.active{display:block}
-.screen.screen-paged.active{display:flex;flex-direction:column;height:100%}
 @keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
 
 /* PAGE HEADER */
@@ -794,7 +793,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
 <!-- ════════════════════════════════════════
      REVIEW QUEUE
 ════════════════════════════════════════ -->
-<div id="screen-queue" class="screen screen-paged">
+<div id="screen-queue" class="screen">
   <div class="ph">
     <div>
       <div class="ph-bc">InfluWatch / Supervision / Review Queue</div>
@@ -842,11 +841,11 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <tbody id="queue-tbody"></tbody>
     </table>
 
-  </div>
-  <div class="pager" id="queue-pager" style="display:none;align-items:center;gap:12px;padding:8px 18px;border-top:1px solid var(--border);background:var(--bg-surface)">
-    <button class="btn btn-ghost btn-sm" id="queue-pager-prev" onclick="queuePage--;loadReviewQueue()">← Prev</button>
-    <span class="pg-info" id="queue-pager-info"></span>
-    <button class="btn btn-ghost btn-sm" id="queue-pager-next" onclick="queuePage++;loadReviewQueue()">Next →</button>
+    <div class="pager" id="queue-pager" style="display:none;align-items:center;gap:12px;padding:8px 18px;border-top:1px solid var(--border);background:var(--bg-surface);position:sticky;bottom:0;z-index:10">
+      <button class="btn btn-ghost btn-sm" id="queue-pager-prev" onclick="queuePage--;loadReviewQueue()">← Prev</button>
+      <span class="pg-info" id="queue-pager-info"></span>
+      <button class="btn btn-ghost btn-sm" id="queue-pager-next" onclick="queuePage++;loadReviewQueue()">Next →</button>
+    </div>
   </div>
 </div>
 
@@ -1520,7 +1519,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
 <!-- ══════════════════════════════════════════════════════════════════ -->
 <!-- SCREEN: Captured Communications                                   -->
 <!-- ══════════════════════════════════════════════════════════════════ -->
-<div id="screen-captures" class="screen screen-paged">
+<div id="screen-captures" class="screen">
   <div class="ph">
     <div>
       <div class="ph-bc">Monitoring › Captures</div>
@@ -1570,11 +1569,11 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       No content records found.
     </div>
 
-  </div>
-  <div class="pager" id="captures-pager" style="display:none;align-items:center;gap:12px;padding:8px 18px;border-top:1px solid var(--border);background:var(--bg-surface)">
-    <button class="btn btn-ghost btn-sm" id="captures-pager-prev" onclick="capturesPage--;loadContentRecords()">← Prev</button>
-    <div class="pg-info" id="captures-pager-info"></div>
-    <button class="btn btn-ghost btn-sm" id="captures-pager-next" onclick="capturesPage++;loadContentRecords()">Next →</button>
+    <div class="pager" id="captures-pager" style="display:none;align-items:center;gap:12px;padding:8px 18px;border-top:1px solid var(--border);background:var(--bg-surface);position:sticky;bottom:0;z-index:10">
+      <button class="btn btn-ghost btn-sm" id="captures-pager-prev" onclick="capturesPage--;loadContentRecords()">← Prev</button>
+      <div class="pg-info" id="captures-pager-info"></div>
+      <button class="btn btn-ghost btn-sm" id="captures-pager-next" onclick="capturesPage++;loadContentRecords()">Next →</button>
+    </div>
   </div>
 </div>
 
