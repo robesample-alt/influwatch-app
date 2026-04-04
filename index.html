@@ -805,14 +805,14 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <select id="queue-filter-status" class="fi" style="width:130px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Status</option><option value="CAPTURED">Captured</option><option value="PENDING_REVIEW">Pending Review</option><option value="ESCALATED">Escalated</option></select>
       <select id="queue-filter-promoter" class="fi" style="width:150px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Promoters</option></select>
       <select id="queue-filter-platform" class="fi" style="width:130px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Platforms</option><option value="YOUTUBE">YouTube</option><option value="INSTAGRAM">Instagram</option><option value="TIKTOK">TikTok</option><option value="TWITTER_X">Twitter/X</option><option value="FACEBOOK">Facebook</option><option value="LINKEDIN">LinkedIn</option></select>
-      <span id="queue-pager" style="display:none;align-items:center;gap:6px;margin-left:8px;border-left:1px solid var(--border);padding-left:10px">
-        <button class="btn btn-ghost btn-sm" id="queue-pager-prev" onclick="queuePage--;loadReviewQueue()" style="padding:4px 8px">←</button>
-        <span class="pg-info" id="queue-pager-info" style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);white-space:nowrap"></span>
-        <button class="btn btn-ghost btn-sm" id="queue-pager-next" onclick="queuePage++;loadReviewQueue()" style="padding:4px 8px">→</button>
-      </span>
     </div>
   </div>
-  <div style="overflow-y:auto;height:calc(100vh - 46px - 80px)">
+  <div id="queue-pager" style="display:none;align-items:center;justify-content:space-between;padding:5px 18px;border-bottom:1px solid var(--border);background:var(--bg-surface);font-family:'IBM Plex Mono',monospace;font-size:10px">
+    <button class="btn btn-ghost btn-sm" id="queue-pager-prev" onclick="queuePage--;loadReviewQueue()" style="padding:3px 10px;font-size:10px">← Prev</button>
+    <span id="queue-pager-info" style="color:var(--text-muted)"></span>
+    <button class="btn btn-ghost btn-sm" id="queue-pager-next" onclick="queuePage++;loadReviewQueue()" style="padding:3px 10px;font-size:10px">Next →</button>
+  </div>
+  <div style="overflow-y:auto;height:calc(100vh - 46px - 60px - 30px)">
 
     <!-- Loading state -->
     <div id="queue-loading" style="padding:32px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted)">
@@ -1530,15 +1530,14 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <select id="captures-filter-status" class="fi" style="width:140px" onchange="capturesPage=1;loadContentRecords()"><option value="">All Status</option><option value="CAPTURED">Captured</option><option value="PENDING_REVIEW">Pending Review</option><option value="REVIEWED">Reviewed</option><option value="ESCALATED">Escalated</option><option value="CLOSED">Closed</option></select>
       <select id="captures-filter-promoter" class="fi" style="width:150px" onchange="capturesPage=1;loadContentRecords()"><option value="">All Promoters</option></select>
       <select id="captures-filter-platform" class="fi" style="width:130px" onchange="capturesPage=1;loadContentRecords()"><option value="">All Platforms</option><option value="YOUTUBE">YouTube</option><option value="INSTAGRAM">Instagram</option><option value="TIKTOK">TikTok</option><option value="TWITTER_X">Twitter/X</option><option value="FACEBOOK">Facebook</option><option value="LINKEDIN">LinkedIn</option></select>
-      <span id="captures-pager" style="display:none;align-items:center;gap:6px;margin-left:8px;border-left:1px solid var(--border);padding-left:10px">
-        <button class="btn btn-ghost btn-sm" id="captures-pager-prev" onclick="capturesPage--;loadContentRecords()" style="padding:4px 8px">←</button>
-        <span class="pg-info" id="captures-pager-info" style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);white-space:nowrap"></span>
-        <button class="btn btn-ghost btn-sm" id="captures-pager-next" onclick="capturesPage++;loadContentRecords()" style="padding:4px 8px">→</button>
-      </span>
     </div>
   </div>
-
-  <div style="overflow-y:auto;height:calc(100vh - 46px - 80px)">
+  <div id="captures-pager" style="display:none;align-items:center;justify-content:space-between;padding:5px 18px;border-bottom:1px solid var(--border);background:var(--bg-surface);font-family:'IBM Plex Mono',monospace;font-size:10px">
+    <button class="btn btn-ghost btn-sm" id="captures-pager-prev" onclick="capturesPage--;loadContentRecords()" style="padding:3px 10px;font-size:10px">← Prev</button>
+    <span id="captures-pager-info" style="color:var(--text-muted)"></span>
+    <button class="btn btn-ghost btn-sm" id="captures-pager-next" onclick="capturesPage++;loadContentRecords()" style="padding:3px 10px;font-size:10px">Next →</button>
+  </div>
+  <div style="overflow-y:auto;height:calc(100vh - 46px - 60px - 30px)">
 
     <!-- Loading state -->
     <div id="captures-loading" style="padding:32px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted)">
@@ -6075,7 +6074,7 @@ async function loadReviewQueue() {
     });
 
     elTable.style.display = 'table';
-    elPager.style.display = 'inline-flex';
+    elPager.style.display = 'flex';
     elPagerInfo.textContent = 'Page ' + queuePage + ' of ' + totalPages + ' · ' + total + ' total · ' + tallyStr;
     document.getElementById('queue-pager-prev').disabled = queuePage <= 1;
     document.getElementById('queue-pager-next').disabled = queuePage >= totalPages;
@@ -6171,7 +6170,7 @@ async function loadEscalations() {
     });
 
     elTable.style.display = 'table';
-    elPager.style.display = 'inline-flex';
+    elPager.style.display = 'flex';
     elPagerInfo.textContent = records.length + ' active escalation' + (records.length !== 1 ? 's' : '');
 
     // Update nav badge
@@ -6303,7 +6302,7 @@ async function loadCertifications() {
     });
 
     elTable.style.display = 'table';
-    elPager.style.display = 'inline-flex';
+    elPager.style.display = 'flex';
     elPagerInfo.textContent = (data.count ?? attestations.length) + ' supervisory attestation' + ((data.count ?? attestations.length) !== 1 ? 's' : '') + ' on record';
 
   } catch (err) {
@@ -6483,7 +6482,7 @@ async function loadRemediations() {
     });
 
     elTable.style.display = 'table';
-    elPager.style.display = 'inline-flex';
+    elPager.style.display = 'flex';
     elPagerInfo.textContent = records.length + ' open remediation' + (records.length !== 1 ? 's' : '');
 
     // Update nav badge
@@ -6609,7 +6608,7 @@ async function loadContentRecords() {
     const total = data.total || records.length;
     const totalPages = data.totalPages || Math.ceil(total / CAPTURES_PAGE_SIZE);
     elTable.style.display = 'table';
-    elPager.style.display = 'inline-flex';
+    elPager.style.display = 'flex';
     elPagerInfo.textContent = 'Page ' + capturesPage + ' of ' + totalPages + ' · ' + total + ' total records';
     document.getElementById('captures-pager-prev').disabled = capturesPage <= 1;
     document.getElementById('captures-pager-next').disabled = capturesPage >= totalPages;
