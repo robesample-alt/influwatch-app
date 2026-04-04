@@ -8623,7 +8623,6 @@ document.addEventListener('mouseout', function(e) {
 // Called from loadReviewRecord() after the record is rendered to the DOM.
 // Do NOT modify _renderReviewEnrichment — scenario lab uses that path.
 function _renderLiveEnrichment(record, comp) {
-  console.log('ENRICHMENT CALLED', record?.id, 'comp:', !!comp, 'posture:', record?.compensationPosture, 'detections:', record?.detectionRecords?.length);
 
   // ── Compensation posture card ─────────────────────────────────────
   var postureMap = {
@@ -8745,7 +8744,6 @@ function _renderLiveEnrichment(record, comp) {
 }
 
 async function loadReviewRecord() {
-  console.log('LOAD_REVIEW_RECORD called, id:', currentReviewRecordId);
   if (!currentReviewRecordId) return;
   const hdrs = authToken ? { 'Authorization': 'Bearer ' + authToken } : {};
 
