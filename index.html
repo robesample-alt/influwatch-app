@@ -803,6 +803,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <div class="ph-actions">
       <select id="queue-filter-severity" class="fi" style="width:130px" onchange="loadReviewQueue()"><option value="">All Severity</option><option value="CRITICAL">Critical</option><option value="HIGH">High</option><option value="MEDIUM">Medium</option><option value="LOW">Low</option></select>
       <select id="queue-filter-status" class="fi" style="width:130px" onchange="loadReviewQueue()"><option value="">All Status</option><option value="CAPTURED">Captured</option><option value="PENDING_REVIEW">Pending Review</option><option value="ESCALATED">Escalated</option></select>
+      <select id="queue-filter-promoter" class="fi" style="width:150px" onchange="loadReviewQueue()"><option value="">All Promoters</option></select>
     </div>
   </div>
   <div style="overflow-y:auto;height:calc(100vh - 46px - 60px)">
@@ -1523,18 +1524,12 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <div class="ph-sub">Immutable evidence store · 1,847 total captures · SHA-256 per record</div>
     </div>
     <div class="ph-actions">
-      <button class="btn btn-secondary btn-sm">⬇ Export Selected</button>
-      <button class="btn btn-ghost btn-sm">Filters ▾</button>
+      <select id="captures-filter-status" class="fi" style="width:140px" onchange="loadContentRecords()"><option value="">All Status</option><option value="CAPTURED">Captured</option><option value="PENDING_REVIEW">Pending Review</option><option value="REVIEWED">Reviewed</option><option value="ESCALATED">Escalated</option><option value="CLOSED">Closed</option></select>
+      <select id="captures-filter-promoter" class="fi" style="width:150px" onchange="loadContentRecords()"><option value="">All Promoters</option></select>
     </div>
   </div>
 
-  <!-- Filter tabs -->
-  <div style="display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--bg-surface)">
-    <div style="padding:9px 18px;font-size:11px;font-weight:600;border-bottom:2px solid var(--amber);color:var(--text-primary);cursor:pointer">All (1,847)</div>
-    <div style="padding:9px 18px;font-size:11px;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent">Flagged (89)</div>
-    <div style="padding:9px 18px;font-size:11px;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent">Pending Review (34)</div>
-    <div style="padding:9px 18px;font-size:11px;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent">Cleared (1,724)</div>
-  </div>
+  <!-- Filter tabs removed — replaced by real dropdowns above -->
 
   <div style="overflow-y:auto;height:calc(100vh - 46px - 60px - 42px)">
 
@@ -5981,10 +5976,13 @@ async function loadReviewQueue() {
 
   try {
     // Build query params from filter controls
+    await loadPromoterDropdowns();
     const statusFilter   = document.getElementById('queue-filter-status')?.value || '';
     const severityFilter = document.getElementById('queue-filter-severity')?.value || '';
+    const promoterFilter = document.getElementById('queue-filter-promoter')?.value || '';
     let url = CONTENT_RECORDS_URL + '?pageSize=200';
-    if (statusFilter) url += '&archiveStatus=' + encodeURIComponent(statusFilter);
+    if (statusFilter)   url += '&archiveStatus=' + encodeURIComponent(statusFilter);
+    if (promoterFilter) url += '&ambassadorId=' + encodeURIComponent(promoterFilter);
 
     const res = await fetch(url, {
       headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {},
@@ -6487,6 +6485,32 @@ async function loadRemediations() {
   }
 }
 
+// ── Populate promoter dropdowns ───────────────────────────────────────
+let _promoterDropdownsLoaded = false;
+async function loadPromoterDropdowns() {
+  if (_promoterDropdownsLoaded) return;
+  try {
+    const res = await fetch('https://influwatch-backend.onrender.com/api/influwatch/ambassadors', {
+      headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {},
+    });
+    if (!res.ok) return;
+    const ambassadors = await res.json();
+    const list = Array.isArray(ambassadors) ? ambassadors : (ambassadors.data || []);
+    const selects = ['queue-filter-promoter', 'captures-filter-promoter'];
+    selects.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      list.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a.id;
+        opt.textContent = a.displayName;
+        el.appendChild(opt);
+      });
+    });
+    _promoterDropdownsLoaded = true;
+  } catch {}
+}
+
 // ── Content Records — API fetch ───────────────────────────────────────
 const CONTENT_RECORDS_URL = 'https://influwatch-backend.onrender.com/api/influwatch/content-records';
 
@@ -6509,7 +6533,14 @@ async function loadContentRecords() {
   tbody.innerHTML = '';
 
   try {
-    const res = await fetch(CONTENT_RECORDS_URL, {
+    await loadPromoterDropdowns();
+    const statusFilter   = document.getElementById('captures-filter-status')?.value || '';
+    const promoterFilter = document.getElementById('captures-filter-promoter')?.value || '';
+    let url = CONTENT_RECORDS_URL + '?pageSize=200';
+    if (statusFilter)   url += '&archiveStatus=' + encodeURIComponent(statusFilter);
+    if (promoterFilter) url += '&ambassadorId=' + encodeURIComponent(promoterFilter);
+
+    const res = await fetch(url, {
       headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {},
     });
     if (!res.ok) throw new Error('HTTP ' + res.status + ' — ' + res.statusText);
