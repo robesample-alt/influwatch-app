@@ -522,7 +522,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     </div>
   </div>
   <div class="tb-badges">
-    <span class="tb-badge tb-badge-firm">Meridian Capital Partners</span>
+    <span class="tb-badge tb-badge-firm" id="tb-firm-name">—</span>
     <span class="tb-badge tb-badge-reg">FINRA</span>
     <span class="tb-badge tb-badge-reg">SEC Rule 17a-4</span>
   </div>
@@ -538,18 +538,6 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <span class="tb-theme-track"><span class="tb-theme-thumb"></span></span>
       <span class="tb-theme-mode" id="theme-mode-lbl">Light</span>
     </label>
-    <div style="width:1px;height:18px;background:var(--border)"></div>
-    <!-- ── DEV: Role switcher — remove before production ── -->
-    <div style="display:flex;align-items:center;gap:5px" title="DEV: set active role for visibility testing">
-      <span style="font-size:8.5px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.1em;color:var(--amber);opacity:0.8">Role</span>
-      <select id="dev-role-switcher" onchange="document.body.dataset.role=this.value;if(this.value==='principal')expandSupPanel();else collapseSupPanel();" style="font-size:9.5px;font-family:'IBM Plex Mono',monospace;background:var(--bg-elevated);color:var(--text-secondary);border:1px solid var(--border);border-radius:3px;padding:2px 5px;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none">
-        <option value="compliance">compliance</option>
-        <option value="promoter">promoter</option>
-        <option value="issuer">issuer</option>
-        <option value="principal">principal</option>
-        <option value="admin">admin</option>
-      </select>
-    </div>
     <div style="width:1px;height:18px;background:var(--border)"></div>
     <div class="tb-bell">&#128276;<div class="tb-bell-count">3</div></div>
     <div class="tb-user">
@@ -832,7 +820,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <table id="queue-table" style="display:none">
       <thead><tr>
         <th>Record ID</th>
-        <th>Ambassador</th>
+        <th>Promoter</th>
         <th>Platform</th>
         <th>Campaign</th>
         <th>Severity</th>
@@ -1555,7 +1543,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <table id="captures-table" style="display:none">
       <thead><tr>
         <th style="width:20px"><input type="checkbox" style="accent-color:var(--amber)" id="captures-select-all" onchange="toggleAllCaptures(this)"></th>
-        <th>Ambassador</th>
+        <th>Promoter</th>
         <th>Platform</th>
         <th>Campaign</th>
         <th>Content</th>
@@ -1623,7 +1611,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
 
       <!-- Ambassador -->
       <div style="margin-bottom:12px">
-        <label class="fl req" style="font-size:10.5px">Ambassador / Promoter</label>
+        <label class="fl req" style="font-size:10.5px">Promoter</label>
         <select id="ingest-ambassador" class="fi">
           <option value="">— select ambassador —</option>
         </select>
@@ -1861,7 +1849,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
 
   <table id="esc-table" style="display:none">
     <thead><tr>
-      <th>Record ID</th><th>Ambassador</th><th>Platform</th><th>Campaign</th><th>Severity</th><th>Status</th><th>Captured</th><th></th>
+      <th>Record ID</th><th>Promoter</th><th>Platform</th><th>Campaign</th><th>Severity</th><th>Status</th><th>Captured</th><th></th>
     </tr></thead>
     <tbody id="esc-tbody"></tbody>
   </table>
@@ -1927,7 +1915,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
 
   <table id="rem-table" style="display:none">
     <thead><tr>
-      <th>Record ID</th><th>Ambassador</th><th>Platform</th><th>Campaign</th><th>Latest Action</th><th>Status</th><th>Captured</th><th></th>
+      <th>Record ID</th><th>Promoter</th><th>Platform</th><th>Campaign</th><th>Latest Action</th><th>Status</th><th>Captured</th><th></th>
     </tr></thead>
     <tbody id="rem-tbody"></tbody>
   </table>
@@ -5529,6 +5517,12 @@ async function submitLogin() {
       if (uroleEl)  uroleEl.textContent  = (data.actor.role || '').replace(/_/g, ' ');
     }
 
+    // Update firm name from tenant
+    if (data.tenant && data.tenant.firmName) {
+      const firmEl = document.getElementById('tb-firm-name');
+      if (firmEl) firmEl.textContent = data.tenant.firmName;
+    }
+
     currentRole = (data.actor && data.actor.role) ? data.actor.role : '';
     applyRoleVisibility(currentRole);
 
@@ -6610,7 +6604,7 @@ async function loadContentRecords() {
         <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-secondary);font-size:11px" title="${esc(bodyText)}">${esc(truncatedBody)}</td>
         <td><span class="stat ${statusClass}">${esc(archiveStatus)}</span></td>
         <td class="mono" style="font-size:10px;white-space:nowrap">${esc(capturedAt)}</td>
-        <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation()">View</button></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();currentReviewRecordId='${esc(rec.id || '')}';window._currentReviewRec=null;go('review')">View</button></td>
       `;
       tbody.appendChild(tr);
     });
