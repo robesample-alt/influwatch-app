@@ -5444,8 +5444,49 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       </div>
 
     </div><!-- /card grid -->
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- GUIDED DEMO: Same Post, Four Outcomes                   -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:20px">
+      <div style="font-size:9px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.14em;color:var(--cyan);margin-bottom:10px">GUIDED DEMO</div>
+      <div onclick="startGuidedDemo()" style="padding:18px 20px;border:1px solid rgba(6,182,212,0.3);background:rgba(6,182,212,0.05);cursor:pointer;border-radius:2px;transition:all 0.12s" onmouseenter="this.style.borderColor='var(--cyan)';this.style.background='rgba(6,182,212,0.1)'" onmouseleave="this.style.borderColor='rgba(6,182,212,0.3)';this.style.background='rgba(6,182,212,0.05)'">
+        <div style="font-weight:700;font-size:15px;margin-bottom:4px">Same Post, Four Outcomes</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px">See how the same social media post triggers four completely different supervisory outcomes — because compensation changes everything.</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="sev sev-critical" style="font-size:8px"><span class="sev-dot"></span>CRITICAL</span>
+          <span class="sev sev-high" style="font-size:8px"><span class="sev-dot"></span>HIGH</span>
+          <span class="sev sev-medium" style="font-size:8px"><span class="sev-dot"></span>MEDIUM</span>
+          <span class="sev sev-low" style="font-size:8px"><span class="sev-dot"></span>LOW</span>
+          <span style="font-size:9.5px;color:var(--cyan);font-family:'IBM Plex Mono',monospace;margin-left:auto">Start Demo →</span>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /padding wrapper -->
 </div><!-- /screen-scenariolab -->
+
+<!-- GUIDED DEMO OVERLAY -->
+<div id="guided-demo-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:9000;pointer-events:none">
+  <!-- Narrative bar at bottom -->
+  <div id="guided-demo-bar" style="position:fixed;bottom:0;left:0;right:0;background:rgba(9,9,15,0.97);border-top:2px solid var(--cyan);padding:16px 24px;pointer-events:auto;z-index:9001">
+    <div style="max-width:900px;margin:0 auto">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+        <span style="font-size:8px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.14em;color:var(--cyan);background:rgba(6,182,212,0.1);padding:3px 8px;border:1px solid rgba(6,182,212,0.3)">GUIDED DEMO</span>
+        <span id="gd-step-label" style="font-size:9px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted)">Step 1 of 6</span>
+        <div style="flex:1"></div>
+        <button class="btn btn-ghost btn-sm" onclick="exitGuidedDemo()" style="font-size:9px;color:var(--text-muted)">✕ Exit Demo</button>
+      </div>
+      <div id="gd-title" style="font-weight:700;font-size:14px;margin-bottom:4px;color:var(--text-primary)"></div>
+      <div id="gd-narrative" style="font-size:12px;color:var(--text-secondary);line-height:1.6;margin-bottom:12px"></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="gd-prev" class="btn btn-ghost btn-sm" onclick="guidedDemoStep(-1)" style="font-size:10px">← Back</button>
+        <div id="gd-dots" style="display:flex;gap:5px;flex:1;justify-content:center"></div>
+        <button id="gd-next" class="btn btn-secondary btn-sm" onclick="guidedDemoStep(1)" style="font-size:10px;border-color:var(--cyan);color:var(--cyan)">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 
 </main>
@@ -8501,6 +8542,97 @@ function _renderReviewEnrichment(id) {
 
 
 // ── Theme toggle ──────────────────────────────────────────────────────
+// ── Guided Demo: Same Post, Four Outcomes ─────────────────────────────
+const GUIDED_STEPS = [
+  {
+    type: 'card',
+    title: 'Compensation Drives Supervision',
+    narrative: 'A promoter posts: "Check out this platform — link in my bio." Harmless? It depends entirely on how they are compensated. The same words, the same post, the same platform — but four completely different supervisory outcomes. This is what InfluWatch was built to understand.',
+  },
+  {
+    type: 'record',
+    recordId: 'CR-SC1-MARCUS',
+    title: 'Marcus Venn — Per-Conversion · CRITICAL',
+    narrative: 'Marcus earns a commission every time someone clicks his link and invests. That makes his "link in bio" a direct solicitation tied to a securities transaction. The system auto-escalates this to the principal for immediate review. Under FINRA Rule 2210, this cannot be posted without prior supervisory approval.',
+  },
+  {
+    type: 'record',
+    recordId: 'CR-SC1-PRIYA',
+    title: 'Priya Sharma — Revenue Share · HIGH',
+    narrative: 'Priya earns a percentage of revenue from referred investors. The same "link in bio" language now carries elevated risk — she has a financial incentive to drive conversions. The system flags this for elevated supervisory review within the SLA window. Not auto-escalated, but the supervisor must act.',
+  },
+  {
+    type: 'record',
+    recordId: 'CR-SC1-NINA',
+    title: 'Nina Castillo — Flat Fee · MEDIUM',
+    narrative: 'Nina receives a fixed payment per post regardless of how many people click. The "link in bio" is still promotional, but her incentive is not conversion-driven. The system runs a standard disclosure check — is the paid partnership disclosed? If yes, this clears with routine review. If not, it gets flagged.',
+  },
+  {
+    type: 'record',
+    recordId: 'CR-SC1-RYAN',
+    title: 'Ryan Michaels — Uncompensated · LOW',
+    narrative: 'Ryan has no financial relationship with the firm. He posted this on his own. The system captures and logs it — because the firm still has a monitoring obligation — but no supervisory action is required. The content is archived for the record, not escalated.',
+  },
+  {
+    type: 'card',
+    title: 'Same Words. Four Outcomes.',
+    narrative: 'This is the core thesis of InfluWatch: the risk is not the message — it is the incentive behind it. A compliance officer reviewing content without understanding compensation is working blind. InfluWatch connects the two, so supervision is proportional, defensible, and auditable.',
+  },
+];
+
+let _gdStep = 0;
+let _gdActive = false;
+
+function startGuidedDemo() {
+  _gdStep = 0;
+  _gdActive = true;
+  document.getElementById('guided-demo-overlay').style.display = 'block';
+  renderGuidedStep();
+}
+
+function exitGuidedDemo() {
+  _gdActive = false;
+  document.getElementById('guided-demo-overlay').style.display = 'none';
+  go('scenariolab');
+}
+
+function guidedDemoStep(dir) {
+  _gdStep = Math.max(0, Math.min(GUIDED_STEPS.length - 1, _gdStep + dir));
+  renderGuidedStep();
+}
+
+function renderGuidedStep() {
+  const step = GUIDED_STEPS[_gdStep];
+  document.getElementById('gd-step-label').textContent = 'Step ' + (_gdStep + 1) + ' of ' + GUIDED_STEPS.length;
+  document.getElementById('gd-title').textContent = step.title;
+  document.getElementById('gd-narrative').textContent = step.narrative;
+  document.getElementById('gd-prev').disabled = _gdStep === 0;
+
+  const nextBtn = document.getElementById('gd-next');
+  if (_gdStep === GUIDED_STEPS.length - 1) {
+    nextBtn.textContent = 'Finish';
+    nextBtn.onclick = exitGuidedDemo;
+  } else {
+    nextBtn.textContent = 'Next →';
+    nextBtn.onclick = function() { guidedDemoStep(1); };
+  }
+
+  // Dots
+  const dotsEl = document.getElementById('gd-dots');
+  dotsEl.innerHTML = GUIDED_STEPS.map((_, i) =>
+    '<div style="width:8px;height:8px;border-radius:50%;background:' + (i === _gdStep ? 'var(--cyan)' : 'var(--border)') + ';transition:background 0.2s"></div>'
+  ).join('');
+
+  // Navigate to the record if this step has one
+  if (step.type === 'record') {
+    currentReviewRecordId = step.recordId;
+    window._currentReviewRec = null;
+    go('review');
+  } else if (step.type === 'card' && _gdStep === 0) {
+    go('scenariolab');
+  }
+}
+
 function applyTheme(isLight) {
   const lbl = document.getElementById('theme-mode-lbl');
   if (isLight) {
