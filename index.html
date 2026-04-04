@@ -801,10 +801,10 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <div class="ph-sub" id="queue-subtitle">Loading review queue…</div>
     </div>
     <div class="ph-actions">
-      <select id="queue-filter-severity" class="fi" style="width:130px" onchange="loadReviewQueue()"><option value="">All Severity</option><option value="CRITICAL">Critical</option><option value="HIGH">High</option><option value="MEDIUM">Medium</option><option value="LOW">Low</option></select>
-      <select id="queue-filter-status" class="fi" style="width:130px" onchange="loadReviewQueue()"><option value="">All Status</option><option value="CAPTURED">Captured</option><option value="PENDING_REVIEW">Pending Review</option><option value="ESCALATED">Escalated</option></select>
-      <select id="queue-filter-promoter" class="fi" style="width:150px" onchange="loadReviewQueue()"><option value="">All Promoters</option></select>
-      <select id="queue-filter-platform" class="fi" style="width:130px" onchange="loadReviewQueue()"><option value="">All Platforms</option><option value="YOUTUBE">YouTube</option><option value="INSTAGRAM">Instagram</option><option value="TIKTOK">TikTok</option><option value="TWITTER_X">Twitter/X</option><option value="FACEBOOK">Facebook</option><option value="LINKEDIN">LinkedIn</option></select>
+      <select id="queue-filter-severity" class="fi" style="width:130px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Severity</option><option value="CRITICAL">Critical</option><option value="HIGH">High</option><option value="MEDIUM">Medium</option><option value="LOW">Low</option></select>
+      <select id="queue-filter-status" class="fi" style="width:130px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Status</option><option value="CAPTURED">Captured</option><option value="PENDING_REVIEW">Pending Review</option><option value="ESCALATED">Escalated</option></select>
+      <select id="queue-filter-promoter" class="fi" style="width:150px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Promoters</option></select>
+      <select id="queue-filter-platform" class="fi" style="width:130px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Platforms</option><option value="YOUTUBE">YouTube</option><option value="INSTAGRAM">Instagram</option><option value="TIKTOK">TikTok</option><option value="TWITTER_X">Twitter/X</option><option value="FACEBOOK">Facebook</option><option value="LINKEDIN">LinkedIn</option></select>
     </div>
   </div>
   <div style="overflow-y:auto;height:calc(100vh - 46px - 60px)">
@@ -841,8 +841,10 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <tbody id="queue-tbody"></tbody>
     </table>
 
-    <div class="pager" id="queue-pager" style="display:none">
+    <div class="pager" id="queue-pager" style="display:none;align-items:center;gap:12px">
+      <button class="btn btn-ghost btn-sm" id="queue-pager-prev" onclick="queuePage--;loadReviewQueue()">← Prev</button>
       <span class="pg-info" id="queue-pager-info"></span>
+      <button class="btn btn-ghost btn-sm" id="queue-pager-next" onclick="queuePage++;loadReviewQueue()">Next →</button>
     </div>
   </div>
 </div>
@@ -1525,9 +1527,9 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <div class="ph-sub">Immutable evidence store · 1,847 total captures · SHA-256 per record</div>
     </div>
     <div class="ph-actions">
-      <select id="captures-filter-status" class="fi" style="width:140px" onchange="loadContentRecords()"><option value="">All Status</option><option value="CAPTURED">Captured</option><option value="PENDING_REVIEW">Pending Review</option><option value="REVIEWED">Reviewed</option><option value="ESCALATED">Escalated</option><option value="CLOSED">Closed</option></select>
-      <select id="captures-filter-promoter" class="fi" style="width:150px" onchange="loadContentRecords()"><option value="">All Promoters</option></select>
-      <select id="captures-filter-platform" class="fi" style="width:130px" onchange="loadContentRecords()"><option value="">All Platforms</option><option value="YOUTUBE">YouTube</option><option value="INSTAGRAM">Instagram</option><option value="TIKTOK">TikTok</option><option value="TWITTER_X">Twitter/X</option><option value="FACEBOOK">Facebook</option><option value="LINKEDIN">LinkedIn</option></select>
+      <select id="captures-filter-status" class="fi" style="width:140px" onchange="capturesPage=1;loadContentRecords()"><option value="">All Status</option><option value="CAPTURED">Captured</option><option value="PENDING_REVIEW">Pending Review</option><option value="REVIEWED">Reviewed</option><option value="ESCALATED">Escalated</option><option value="CLOSED">Closed</option></select>
+      <select id="captures-filter-promoter" class="fi" style="width:150px" onchange="capturesPage=1;loadContentRecords()"><option value="">All Promoters</option></select>
+      <select id="captures-filter-platform" class="fi" style="width:130px" onchange="capturesPage=1;loadContentRecords()"><option value="">All Platforms</option><option value="YOUTUBE">YouTube</option><option value="INSTAGRAM">Instagram</option><option value="TIKTOK">TikTok</option><option value="TWITTER_X">Twitter/X</option><option value="FACEBOOK">Facebook</option><option value="LINKEDIN">LinkedIn</option></select>
     </div>
   </div>
 
@@ -1567,8 +1569,10 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       No content records found.
     </div>
 
-    <div class="pager" id="captures-pager" style="display:none">
+    <div class="pager" id="captures-pager" style="display:none;align-items:center;gap:12px">
+      <button class="btn btn-ghost btn-sm" id="captures-pager-prev" onclick="capturesPage--;loadContentRecords()">← Prev</button>
       <div class="pg-info" id="captures-pager-info"></div>
+      <button class="btn btn-ghost btn-sm" id="captures-pager-next" onclick="capturesPage++;loadContentRecords()">Next →</button>
     </div>
   </div>
 </div>
@@ -5952,6 +5956,8 @@ function toggleDisclosure(id) {
 //   Replace inferSeverity() calls with rec.severity once the backend provides it.
 
 const QUEUE_STATUSES = ['PENDING_REVIEW', 'REVIEWED'];
+let queuePage = 1;
+const QUEUE_PAGE_SIZE = 25;
 const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
 
 // Tracks the content record ID selected from the queue — used by submitDecision
@@ -5983,7 +5989,8 @@ async function loadReviewQueue() {
     const severityFilter = document.getElementById('queue-filter-severity')?.value || '';
     const promoterFilter = document.getElementById('queue-filter-promoter')?.value || '';
     const platformFilter = document.getElementById('queue-filter-platform')?.value || '';
-    let url = CONTENT_RECORDS_URL + '?pageSize=200';
+    if (queuePage < 1) queuePage = 1;
+    let url = CONTENT_RECORDS_URL + '?page=' + queuePage + '&pageSize=' + QUEUE_PAGE_SIZE;
     if (statusFilter)   url += '&archiveStatus=' + encodeURIComponent(statusFilter);
     if (promoterFilter) url += '&ambassadorId=' + encodeURIComponent(promoterFilter);
     if (platformFilter) url += '&sourcePlatform=' + encodeURIComponent(platformFilter);
@@ -5994,6 +6001,8 @@ async function loadReviewQueue() {
     if (!res.ok) throw new Error('HTTP ' + res.status + ' — ' + res.statusText);
     const data = await res.json();
     const all = Array.isArray(data) ? data : (data.data || data.records || []);
+    const total = data.total || all.length;
+    const totalPages = data.totalPages || Math.ceil(total / QUEUE_PAGE_SIZE);
 
     // If no status filter selected, show queue-relevant statuses only
     let queue = statusFilter
@@ -6069,7 +6078,9 @@ async function loadReviewQueue() {
 
     elTable.style.display = 'table';
     elPager.style.display = 'flex';
-    elPagerInfo.textContent = queue.length + ' item' + (queue.length !== 1 ? 's' : '') + ' · ' + tallyStr;
+    elPagerInfo.textContent = 'Page ' + queuePage + ' of ' + totalPages + ' · ' + total + ' total · ' + tallyStr;
+    document.getElementById('queue-pager-prev').disabled = queuePage <= 1;
+    document.getElementById('queue-pager-next').disabled = queuePage >= totalPages;
 
     // Update nav badge
     const navBadge = document.querySelector('#nav-queue .nav-badge');
@@ -6515,6 +6526,9 @@ async function loadPromoterDropdowns() {
   } catch {}
 }
 
+let capturesPage = 1;
+const CAPTURES_PAGE_SIZE = 25;
+
 // ── Content Records — API fetch ───────────────────────────────────────
 const CONTENT_RECORDS_URL = 'https://influwatch-backend.onrender.com/api/influwatch/content-records';
 
@@ -6541,7 +6555,8 @@ async function loadContentRecords() {
     const statusFilter   = document.getElementById('captures-filter-status')?.value || '';
     const promoterFilter = document.getElementById('captures-filter-promoter')?.value || '';
     const platformFilter = document.getElementById('captures-filter-platform')?.value || '';
-    let url = CONTENT_RECORDS_URL + '?pageSize=200';
+    if (capturesPage < 1) capturesPage = 1;
+    let url = CONTENT_RECORDS_URL + '?page=' + capturesPage + '&pageSize=' + CAPTURES_PAGE_SIZE;
     if (statusFilter)   url += '&archiveStatus=' + encodeURIComponent(statusFilter);
     if (promoterFilter) url += '&ambassadorId=' + encodeURIComponent(promoterFilter);
     if (platformFilter) url += '&sourcePlatform=' + encodeURIComponent(platformFilter);
@@ -6593,9 +6608,13 @@ async function loadContentRecords() {
       tbody.appendChild(tr);
     });
 
+    const total = data.total || records.length;
+    const totalPages = data.totalPages || Math.ceil(total / CAPTURES_PAGE_SIZE);
     elTable.style.display = 'table';
     elPager.style.display = 'flex';
-    elPagerInfo.textContent = 'Showing ' + records.length + ' record' + (records.length !== 1 ? 's' : '');
+    elPagerInfo.textContent = 'Page ' + capturesPage + ' of ' + totalPages + ' · ' + total + ' total records';
+    document.getElementById('captures-pager-prev').disabled = capturesPage <= 1;
+    document.getElementById('captures-pager-next').disabled = capturesPage >= totalPages;
 
   } catch (err) {
     elLoading.style.display = 'none';
