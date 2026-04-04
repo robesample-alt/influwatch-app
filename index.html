@@ -804,6 +804,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <select id="queue-filter-severity" class="fi" style="width:130px" onchange="loadReviewQueue()"><option value="">All Severity</option><option value="CRITICAL">Critical</option><option value="HIGH">High</option><option value="MEDIUM">Medium</option><option value="LOW">Low</option></select>
       <select id="queue-filter-status" class="fi" style="width:130px" onchange="loadReviewQueue()"><option value="">All Status</option><option value="CAPTURED">Captured</option><option value="PENDING_REVIEW">Pending Review</option><option value="ESCALATED">Escalated</option></select>
       <select id="queue-filter-promoter" class="fi" style="width:150px" onchange="loadReviewQueue()"><option value="">All Promoters</option></select>
+      <select id="queue-filter-platform" class="fi" style="width:130px" onchange="loadReviewQueue()"><option value="">All Platforms</option><option value="YOUTUBE">YouTube</option><option value="INSTAGRAM">Instagram</option><option value="TIKTOK">TikTok</option><option value="TWITTER_X">Twitter/X</option><option value="FACEBOOK">Facebook</option><option value="LINKEDIN">LinkedIn</option></select>
     </div>
   </div>
   <div style="overflow-y:auto;height:calc(100vh - 46px - 60px)">
@@ -1526,6 +1527,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <div class="ph-actions">
       <select id="captures-filter-status" class="fi" style="width:140px" onchange="loadContentRecords()"><option value="">All Status</option><option value="CAPTURED">Captured</option><option value="PENDING_REVIEW">Pending Review</option><option value="REVIEWED">Reviewed</option><option value="ESCALATED">Escalated</option><option value="CLOSED">Closed</option></select>
       <select id="captures-filter-promoter" class="fi" style="width:150px" onchange="loadContentRecords()"><option value="">All Promoters</option></select>
+      <select id="captures-filter-platform" class="fi" style="width:130px" onchange="loadContentRecords()"><option value="">All Platforms</option><option value="YOUTUBE">YouTube</option><option value="INSTAGRAM">Instagram</option><option value="TIKTOK">TikTok</option><option value="TWITTER_X">Twitter/X</option><option value="FACEBOOK">Facebook</option><option value="LINKEDIN">LinkedIn</option></select>
     </div>
   </div>
 
@@ -5980,9 +5982,11 @@ async function loadReviewQueue() {
     const statusFilter   = document.getElementById('queue-filter-status')?.value || '';
     const severityFilter = document.getElementById('queue-filter-severity')?.value || '';
     const promoterFilter = document.getElementById('queue-filter-promoter')?.value || '';
+    const platformFilter = document.getElementById('queue-filter-platform')?.value || '';
     let url = CONTENT_RECORDS_URL + '?pageSize=200';
     if (statusFilter)   url += '&archiveStatus=' + encodeURIComponent(statusFilter);
     if (promoterFilter) url += '&ambassadorId=' + encodeURIComponent(promoterFilter);
+    if (platformFilter) url += '&sourcePlatform=' + encodeURIComponent(platformFilter);
 
     const res = await fetch(url, {
       headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {},
@@ -6536,9 +6540,11 @@ async function loadContentRecords() {
     await loadPromoterDropdowns();
     const statusFilter   = document.getElementById('captures-filter-status')?.value || '';
     const promoterFilter = document.getElementById('captures-filter-promoter')?.value || '';
+    const platformFilter = document.getElementById('captures-filter-platform')?.value || '';
     let url = CONTENT_RECORDS_URL + '?pageSize=200';
     if (statusFilter)   url += '&archiveStatus=' + encodeURIComponent(statusFilter);
     if (promoterFilter) url += '&ambassadorId=' + encodeURIComponent(promoterFilter);
+    if (platformFilter) url += '&sourcePlatform=' + encodeURIComponent(platformFilter);
 
     const res = await fetch(url, {
       headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {},
