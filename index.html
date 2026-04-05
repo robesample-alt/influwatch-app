@@ -539,7 +539,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <span class="tb-theme-mode" id="theme-mode-lbl">Light</span>
     </label>
     <div style="width:1px;height:18px;background:var(--border)"></div>
-    <div class="tb-bell">&#128276;<div class="tb-bell-count">3</div></div>
+    <div class="tb-bell" onclick="openAlertsQueue()" title="Open items requiring attention">&#128276;<div class="tb-bell-count" id="tb-bell-count">—</div></div>
     <div class="tb-user">
       <div class="tb-avatar">SR</div>
       <div>
@@ -5615,6 +5615,7 @@ async function submitLogin() {
     currentRole = (data.actor && data.actor.role) ? data.actor.role : '';
     applyRoleVisibility(currentRole);
     loadDashboardMetrics();
+    updateNotificationBell();
 
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('main-shell').style.display   = 'grid';
@@ -5668,6 +5669,7 @@ function applyRoleVisibility(role) {
 
 // ── Navigation ────────────────────────────────────────────────────────
 function go(name) {
+  if (typeof updateNotificationBell === 'function') updateNotificationBell();
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const t = document.getElementById('screen-' + name);
   if (t) t.classList.add('active');
@@ -6586,6 +6588,45 @@ async function loadRemediations() {
     elErrMsg.textContent    = err.message;
     if (elSubtitle) elSubtitle.textContent = 'Failed to load';
   }
+}
+
+// ── Notification bell — live count of items requiring attention ──────
+async function updateNotificationBell() {
+  if (!authToken) return;
+  const el = document.getElementById('tb-bell-count');
+  if (!el) return;
+
+  try {
+    const res = await fetch('https://influwatch-backend.onrender.com/api/influwatch/content-records?pageSize=500', {
+      headers: { 'Authorization': 'Bearer ' + authToken },
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const records = data.data || [];
+
+    // Critical not yet reviewed + High pending + any SLA breached
+    const attention = records.filter(function(r) {
+      const activeStatus = ['CAPTURED','PENDING_REVIEW','ESCALATED'].includes(r.archiveStatus);
+      if (!activeStatus) return false;
+      if (r.slaBreached) return true;
+      if (r.severity === 'CRITICAL') return true;
+      if (r.severity === 'HIGH' && r.archiveStatus === 'PENDING_REVIEW') return true;
+      return false;
+    }).length;
+
+    el.textContent = attention;
+    el.style.display = attention > 0 ? 'flex' : 'none';
+  } catch (e) { /* silent */ }
+}
+
+function openAlertsQueue() {
+  // Navigate to Review Queue filtered by escalated/critical
+  var statusEl = document.getElementById('queue-filter-status');
+  var sevEl    = document.getElementById('queue-filter-severity');
+  if (statusEl) statusEl.value = 'ESCALATED';
+  if (sevEl)    sevEl.value    = '';
+  queuePage = 1;
+  go('queue');
 }
 
 // ── Dashboard live metrics ────────────────────────────────────────────
