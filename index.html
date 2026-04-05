@@ -261,7 +261,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .snap-lbl{font-size:8.5px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.16em;margin-bottom:8px;display:flex;align-items:center;gap:8px}
 .snap-lbl::after{content:'';flex:1;height:1px;background:var(--border)}
 .snap-box{background:var(--bg-panel);border:1px solid var(--border-bright);padding:14px;font-size:12.5px;line-height:1.75;color:var(--text-primary);position:relative;border-radius:4px}
-.snap-immutable{position:absolute;top:7px;right:7px;font-family:'IBM Plex Mono',monospace;font-size:7.5px;letter-spacing:0.1em;color:var(--text-muted);background:var(--bg-base);border:1px solid var(--border);padding:2px 5px;text-transform:uppercase;border-radius:2px}
+.snap-immutable{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:7.5px;letter-spacing:0.1em;color:var(--text-muted);background:var(--bg-base);border:1px solid var(--border);padding:3px 7px;text-transform:uppercase;border-radius:2px;margin-bottom:10px}
 .hl-match{background:rgba(217,119,6,0.18);border-bottom:1px solid var(--amber);color:var(--amber);padding:0 2px}
 .hl-crit{background:rgba(220,38,38,0.15);border-bottom:1px solid var(--red);color:var(--red);padding:0 2px}
 .snap-url{margin-top:10px;padding:6px 10px;background:var(--bg-base);border:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:var(--text-muted);word-break:break-all;border-radius:3px}
@@ -676,12 +676,12 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     </div>
   </div>
   <div class="metrics" style="grid-template-columns:repeat(6,1fr)">
-    <div class="metric m-cyan"><div class="m-lbl">Monitored Accounts</div><div class="m-val" style="color:var(--cyan)">9</div><div class="m-sub ok">5 promoters · all active</div></div>
-    <div class="metric m-blue"><div class="m-lbl">Rules Active</div><div class="m-val" style="color:var(--blue)">5</div><div class="m-sub">of 6 configured</div></div>
-    <div class="metric m-red"><div class="m-lbl">Open Flags</div><div class="m-val" style="color:var(--red)">4</div><div class="m-sub up">↑ 2 since yesterday</div></div>
-    <div class="metric m-amber"><div class="m-lbl">Pending Review</div><div class="m-val" style="color:var(--amber)">5</div><div class="m-sub warn">1 SLA breach</div></div>
-    <div class="metric m-orange"><div class="m-lbl">Escalations</div><div class="m-val" style="color:var(--orange)">1</div><div class="m-sub up">FLG-1029 · +7h breach</div></div>
-    <div class="metric m-green"><div class="m-lbl">SLA Compliance</div><div class="m-val" style="color:var(--green)">80%</div><div class="m-sub warn">1 breach · 4 in window</div></div>
+    <div class="metric m-cyan"><div class="m-lbl">Total Promoters</div><div class="m-val" style="color:var(--cyan)" id="dash-metric-promoters">—</div><div class="m-sub ok" id="dash-metric-promoters-sub">loading…</div></div>
+    <div class="metric m-blue"><div class="m-lbl">Total Content Records</div><div class="m-val" style="color:var(--blue)" id="dash-metric-records">—</div><div class="m-sub" id="dash-metric-records-sub">loading…</div></div>
+    <div class="metric m-red"><div class="m-lbl">Open Flags</div><div class="m-val" style="color:var(--red)" id="dash-metric-openflags">—</div><div class="m-sub up" id="dash-metric-openflags-sub">loading…</div></div>
+    <div class="metric m-amber"><div class="m-lbl">Pending Review</div><div class="m-val" style="color:var(--amber)" id="dash-metric-pending">—</div><div class="m-sub warn" id="dash-metric-pending-sub">loading…</div></div>
+    <div class="metric m-orange"><div class="m-lbl">Escalations</div><div class="m-val" style="color:var(--orange)" id="dash-metric-escalated">—</div><div class="m-sub up" id="dash-metric-escalated-sub">loading…</div></div>
+    <div class="metric m-green"><div class="m-lbl">SLA Compliance</div><div class="m-val" style="color:var(--green)" id="dash-metric-sla">—</div><div class="m-sub warn" id="dash-metric-sla-sub">loading…</div></div>
   </div>
 
   <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:14px;padding:16px 20px">
@@ -961,7 +961,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
             <div id="rev-issue-disclosure" style="font-size:12px;font-weight:700">&#8212;</div>
           </div>
         </div>
-        <button onclick="toggleDisclosure('rev-tech-details')" style="background:none;border:1px solid var(--border);color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:9.5px;padding:5px 10px;cursor:pointer;letter-spacing:0.08em;width:100%;text-align:left;border-radius:3px">&#9658; View Engine Signals</button>
+        <button onclick="toggleDisclosure('rev-tech-details')" style="background:none;border:1px solid var(--border);color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:9.5px;padding:5px 10px;cursor:pointer;letter-spacing:0.08em;width:100%;text-align:left;border-radius:3px">&#9658; View Detection Detail</button>
         <div id="rev-tech-details" style="display:none;margin-top:8px">
           <div id="rev-detections-label" class="snap-lbl">Detection Records &#8212; 2 rules matched</div>
           <div id="rev-detections-body">
@@ -5614,6 +5614,7 @@ async function submitLogin() {
 
     currentRole = (data.actor && data.actor.role) ? data.actor.role : '';
     applyRoleVisibility(currentRole);
+    loadDashboardMetrics();
 
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('main-shell').style.display   = 'grid';
@@ -6586,6 +6587,55 @@ async function loadRemediations() {
   }
 }
 
+// ── Dashboard live metrics ────────────────────────────────────────────
+async function loadDashboardMetrics() {
+  if (!authToken) return;
+  const hdrs = { 'Authorization': 'Bearer ' + authToken };
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+  try {
+    const [ambRes, recRes] = await Promise.all([
+      fetch('https://influwatch-backend.onrender.com/api/influwatch/ambassadors', { headers: hdrs }),
+      fetch('https://influwatch-backend.onrender.com/api/influwatch/content-records?pageSize=500', { headers: hdrs }),
+    ]);
+
+    if (ambRes.ok) {
+      const amb = await ambRes.json();
+      const list = Array.isArray(amb) ? amb : (amb.data || []);
+      set('dash-metric-promoters', list.length);
+      const active = list.filter(a => a.status === 'ACTIVE').length;
+      set('dash-metric-promoters-sub', active + ' active · ' + (list.length - active) + ' other');
+    }
+
+    if (recRes.ok) {
+      const recData = await recRes.json();
+      const records = recData.data || [];
+      const total = recData.total || records.length;
+      set('dash-metric-records', total);
+      set('dash-metric-records-sub', records.length + ' shown · ' + total + ' total');
+
+      const open     = records.filter(r => ['CAPTURED','PENDING_REVIEW','ESCALATED'].includes(r.archiveStatus)).length;
+      const pending  = records.filter(r => r.archiveStatus === 'PENDING_REVIEW').length;
+      const escalated= records.filter(r => r.archiveStatus === 'ESCALATED').length;
+      const reviewed = records.filter(r => ['REVIEWED','CLOSED'].includes(r.archiveStatus)).length;
+
+      set('dash-metric-openflags', open);
+      set('dash-metric-openflags-sub', open === 0 ? 'all clear' : open + ' requiring action');
+      set('dash-metric-pending', pending);
+      set('dash-metric-pending-sub', pending === 0 ? 'no backlog' : pending + ' in queue');
+      set('dash-metric-escalated', escalated);
+      set('dash-metric-escalated-sub', escalated === 0 ? 'none' : escalated + ' active');
+
+      const totalActioned = reviewed + escalated;
+      const sla = totalActioned > 0 ? Math.round((reviewed / totalActioned) * 100) : 100;
+      set('dash-metric-sla', sla + '%');
+      set('dash-metric-sla-sub', reviewed + ' resolved · ' + escalated + ' escalated');
+    }
+  } catch (e) {
+    console.warn('Dashboard metrics load failed', e);
+  }
+}
+
 // ── Populate promoter dropdowns ───────────────────────────────────────
 let _promoterDropdownsLoaded = false;
 async function loadPromoterDropdowns() {
@@ -6669,6 +6719,8 @@ async function loadContentRecords() {
 
     records.forEach(rec => {
       const tr = document.createElement('tr');
+      tr.style.cursor = 'pointer';
+      tr.onclick = function() { currentReviewRecordId = rec.id || null; window._currentReviewRec = rec; go('review'); };
 
       const displayName   = rec.ambassador?.displayName  ?? '—';
       const platform      = rec.sourcePlatform            ?? '—';
@@ -6686,7 +6738,7 @@ async function loadContentRecords() {
       const truncatedBody = bodyText.length > 80 ? bodyText.slice(0, 80) + '…' : bodyText;
 
       tr.innerHTML = `
-        <td><input type="checkbox" style="accent-color:var(--amber)"></td>
+        <td><input type="checkbox" style="accent-color:var(--amber)" onclick="event.stopPropagation()"></td>
         <td><div style="font-weight:500">${esc(displayName)}</div></td>
         <td class="muted">${esc(platform)}</td>
         <td class="muted" style="font-size:11px">${esc(campaignName)}</td>
@@ -8457,6 +8509,7 @@ go = function(name) {
   _origGo(name);
   if (name === 'monitoring')      loadMonitoring();
   if (name === 'captures')        loadContentRecords();
+  if (name === 'dashboard')       loadDashboardMetrics();
   if (name === 'queue')           loadReviewQueue();
   if (name === 'escalations')     loadEscalations();
   if (name === 'remediation')     loadRemediations();
@@ -9277,13 +9330,27 @@ async function loadReviewRecord() {
   // Content snapshot
   _s('rev-snap-label', 'Content Snapshot · ' + recId + (rec.contentType ? ' · ' + rec.contentType : ''));
   const bodyText = rec.bodyText || rec.transcriptText || '(No content body on record)';
+
+  // Check if ingested via Phyllo (async — updates badge after events load)
+  let phylloBadge = '';
+  try {
+    const evRes = await fetch(CONTENT_RECORDS_URL + '/' + rec.id + '/events', { headers: hdrs });
+    if (evRes.ok) {
+      const events = await evRes.json();
+      const evList = Array.isArray(events) ? events : (events.data || []);
+      if (evList.some(e => e.actorId === 'PHYLLO')) {
+        phylloBadge = '<span style="display:inline-block;font-family:\'IBM Plex Mono\',monospace;font-size:7.5px;letter-spacing:0.1em;color:var(--cyan);background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.3);padding:3px 7px;text-transform:uppercase;border-radius:2px;margin-bottom:10px;margin-left:6px">⚡ Via Phyllo</span>';
+      }
+    }
+  } catch {}
+
   const snEl = document.getElementById('rev-snap-box');
   if (snEl) {
     const urlHtml = rec.sourceUrl
       ? '<div class="snap-url"><span style="color:var(--text-muted);margin-right:5px">URL:</span>' + esc(rec.sourceUrl) + '</div>'
       : '';
     snEl.innerHTML =
-      '<div class="snap-immutable">🔒 IMMUTABLE · SHA-256 VERIFIED</div>' +
+      '<div class="snap-immutable">🔒 IMMUTABLE · SHA-256 VERIFIED</div>' + phylloBadge +
       '<p style="white-space:pre-wrap;margin-bottom:9px">' + esc(bodyText) + '</p>' +
       urlHtml;
   }
