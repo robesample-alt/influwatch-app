@@ -8587,12 +8587,14 @@ function startGuidedDemo() {
   _gdStep = 0;
   _gdActive = true;
   document.getElementById('guided-demo-overlay').style.display = 'block';
+  document.querySelector('.main').style.paddingBottom = '160px';
   renderGuidedStep();
 }
 
 function exitGuidedDemo() {
   _gdActive = false;
   document.getElementById('guided-demo-overlay').style.display = 'none';
+  document.querySelector('.main').style.paddingBottom = '0';
   go('scenariolab');
 }
 
@@ -8828,10 +8830,14 @@ function _renderLiveEnrichment(record, comp) {
 
   // ── Compensation posture card ─────────────────────────────────────
   var postureMap = {
-    'HEIGHTENED':   { label: 'Likely Compensated — High Risk',    cls: 'rev-posture-critical' },
-    'STANDARD':     { label: 'Compensated — Standard Supervision', cls: 'rev-posture-medium'   },
-    'UNCOMPENSATED':{ label: 'Uncompensated — Monitor Only',       cls: 'rev-posture-low'      },
-    'ELEVATED':     { label: 'Compensated — Elevated Risk',        cls: 'rev-posture-high'     },
+    'CRITICAL':     { label: 'Likely Compensated — Critical Risk',  cls: 'rev-posture-critical' },
+    'HEIGHTENED':   { label: 'Likely Compensated — High Risk',      cls: 'rev-posture-critical' },
+    'HIGH':         { label: 'Compensated — Elevated Risk',         cls: 'rev-posture-high'     },
+    'ELEVATED':     { label: 'Compensated — Elevated Risk',         cls: 'rev-posture-high'     },
+    'MEDIUM':       { label: 'Compensated — Standard Supervision',  cls: 'rev-posture-medium'   },
+    'STANDARD':     { label: 'Compensated — Standard Supervision',  cls: 'rev-posture-medium'   },
+    'LOW':          { label: 'Uncompensated — Monitor Only',        cls: 'rev-posture-low'      },
+    'UNCOMPENSATED':{ label: 'Uncompensated — Monitor Only',        cls: 'rev-posture-low'      },
   };
   var posture = postureMap[record.compensationPosture] || { label: 'Posture Unknown — Review Required', cls: 'rev-posture-medium' };
 
@@ -8873,9 +8879,13 @@ function _renderLiveEnrichment(record, comp) {
   if (regMeaning) {
     var postureKey = record.compensationPosture || '';
     var meaningMap = {
+      'CRITICAL':      'This promoter is compensated based on transaction outcomes. Their content is subject to heightened supervisory review because their financial incentive is directly tied to viewer action. Any solicitation behavior requires immediate evaluation.',
       'HEIGHTENED':    'This promoter is compensated based on transaction outcomes. Their content is subject to heightened supervisory review because their financial incentive is directly tied to viewer action. Any solicitation behavior requires immediate evaluation.',
+      'HIGH':          'This promoter is compensated in a way that creates elevated regulatory risk. Their content must be reviewed for solicitation behavior and disclosure compliance before any action is taken.',
       'ELEVATED':      'This promoter is compensated in a way that creates elevated regulatory risk. Their content must be reviewed for solicitation behavior and disclosure compliance before any action is taken.',
+      'MEDIUM':        'This promoter is compensated under a standard arrangement. Their content is subject to routine supervisory review for disclosure compliance and behavioral boundaries.',
       'STANDARD':      'This promoter is compensated under a standard arrangement. Their content is subject to routine supervisory review for disclosure compliance and behavioral boundaries.',
+      'LOW':           'This promoter is not compensated. Content is monitored for behavioral boundaries and disclosure obligations. Lower supervisory priority unless violations are detected.',
       'UNCOMPENSATED': 'This promoter is not compensated. Content is monitored for behavioral boundaries and disclosure obligations. Lower supervisory priority unless violations are detected.',
     };
     regMeaning.textContent = meaningMap[postureKey] || 'Compensation posture could not be determined. Manual classification required before supervisory decision.';
