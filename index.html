@@ -942,7 +942,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
         <div style="background:var(--bg-base);border:1px solid var(--border);border-radius:3px;overflow:hidden">
           <div style="display:flex;justify-content:space-between;padding:5px 10px;border-bottom:1px solid var(--border);font-size:10.5px"><span style="color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:9px">CAPTURE</span><span class="mono">CAP-0829</span></div>
           <div style="display:flex;justify-content:space-between;padding:5px 10px;border-bottom:1px solid var(--border);font-size:10.5px"><span style="color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:9px">SOURCE</span><span style="font-size:10px;color:var(--cyan);font-family:'IBM Plex Mono',monospace">AUTO-MONITOR</span></div>
-          <div style="display:flex;justify-content:space-between;padding:5px 10px;border-bottom:1px solid var(--border);font-size:10.5px"><span style="color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:9px">RULES HIT</span><span id="rev-rules-hit" class="mono">RISK-001 &#183; DISC-001</span></div>
+          <div style="display:flex;justify-content:space-between;padding:5px 10px;border-bottom:1px solid var(--border);font-size:10.5px"><span style="color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:9px">FINDINGS</span><span id="rev-rules-hit" style="font-size:10px;text-align:right">&#8212;</span></div>
           <div style="display:flex;justify-content:space-between;padding:5px 10px;border-bottom:1px solid var(--border);font-size:10.5px"><span style="color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:9px">CAPTURED</span><span class="mono" style="font-size:9.5px">Jan 27 2026 08:00 UTC</span></div>
           <div style="display:flex;justify-content:space-between;padding:5px 10px;font-size:10.5px"><span style="color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:9px">ESCALATED TO</span><span style="font-size:10.5px;color:var(--red)">R. Delacroix (DS)</span></div>
         </div>
@@ -967,27 +967,9 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
         </div>
         <button onclick="toggleDisclosure('rev-tech-details')" style="background:none;border:1px solid var(--border);color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:9.5px;padding:5px 10px;cursor:pointer;letter-spacing:0.08em;width:100%;text-align:left;border-radius:3px">&#9658; View Detection Detail</button>
         <div id="rev-tech-details" style="display:none;margin-top:8px">
-          <div id="rev-detections-label" class="snap-lbl">Detection Records &#8212; 2 rules matched</div>
+          <div id="rev-detections-label" class="snap-lbl">Compliance Findings</div>
           <div id="rev-detections-body">
-            <div class="flag-item critical">
-              <div class="flag-hdr">
-                <span class="flag-code">RISK-001</span>
-                <span class="sev sev-critical"><span class="sev-dot"></span>Critical</span>
-                <span class="flag-name">False or Misleading Statements About Issuer</span>
-                <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-muted)">SEC Rule 10b-5</span>
-              </div>
-              <div class="flag-exc">Matched: <mark>&#8220;confirmed a Nasdaq listing by Q2&#8221;</mark> &#183; <mark>&#8220;inside sources&#8221;</mark><br>Method: PHRASE_MATCH + SEMANTIC &#183; Rule v2 &#183; 2 hits &#183; Confidence: HIGH</div>
-              <div class="flag-reg">Regulatory basis: SEC Rule 10b-5 &#8212; material misstatement / selective disclosure risk. Unverified forward-looking claim attributed to insider knowledge.</div>
-            </div>
-            <div class="flag-item high">
-              <div class="flag-hdr">
-                <span class="flag-code">DISC-001</span>
-                <span class="sev sev-high"><span class="sev-dot"></span>High</span>
-                <span class="flag-name">Compensated Endorsement Disclosure Absent</span>
-                <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-muted)">SEC Rule 17(b)</span>
-              </div>
-              <div class="flag-exc">Result: <span style="color:var(--red);font-weight:600">DISCLOSURE NOT DETECTED</span><br>Promoter classified as Compensated &#183; Cash per post &#183; Agreement AGR-2025-004 on file. Required &#8220;I was compensated&#8221; disclosure absent from post.<br>Checked patterns: &#8220;paid partnership&#8221;, &#8220;#ad&#8221;, &#8220;#sponsored&#8221;, &#8220;I was compensated&#8221;, firm disclosure phrase.</div>
-              <div class="flag-reg">Compensation confirmed in written agreement. SEC Rule 17(b) disclosure required for all compensated recommendations.</div>
+            <div style="font-size:11px;color:var(--text-muted);padding:8px 0">Loading findings&#8230;</div>
             </div>
           </div>
         </div>
@@ -5568,6 +5550,58 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
 
 
 <script>
+// ── Finding Copy — plain-English detection labels ─────────────────────
+// Mirrors src/constants/findingCopy.ts on the backend. Rule codes and
+// detection methods MUST NEVER be rendered to users — screenshots that
+// leak internal identifiers expose detection taxonomy. Keep these two
+// copies in sync when adding or changing rules.
+const FINDING_COPY = {
+  'RISK-001': { category: 'PERFORMANCE_CLAIM',      title: 'Unverifiable Performance Claim',                 description: 'Content contains absolute return promises, guarantees, or insider-knowledge language that cannot be substantiated under securities advertising rules.' },
+  'RISK-002': { category: 'UNBALANCED_RISK',        title: 'Unbalanced Risk Portrayal',                      description: 'Content emphasizes upside or lifestyle outcomes without balanced discussion of investment risk, which is required for compensated content referencing securities.' },
+  'RISK-003': { category: 'PERFORMANCE_CLAIM',      title: 'Unverifiable Performance Claim',                 description: 'Content references specific performance expectations or relative outperformance without the disclosures required when past or projected returns are discussed.' },
+  'RISK-004': { category: 'FORWARD_LOOKING',        title: 'Forward-Looking Statement Without Disclaimer',   description: 'Content contains predictions about future fund or company performance without the disclaimer language required for forward-looking statements.' },
+  'RISK-005': { category: 'TESTIMONIAL',            title: 'Testimonial Without Required Disclosures',       description: 'Content includes a personal endorsement or testimonial without the compensation, typicality, and risk disclosures required when testimonials are used in investment promotion.' },
+  'DISC-001': { category: 'DISCLOSURE',             title: 'Disclosure Issue',                               description: 'No compensation disclosure detected in content that references a specific investment product. Compensated promoters must identify themselves as compensated.' },
+  'DISC-002': { category: 'DISCLOSURE',             title: 'Disclosure Issue',                               description: 'Paid-promotion context detected but the required compensation disclosure appears absent or inadequate under FTC and FINRA guidance.' },
+  'COMP-001': { category: 'COMPENSATION_STRUCTURE', title: 'Transaction-Based Compensation Risk',            description: 'Promoter receives transaction-based compensation on a security-linked product, which creates elevated supervisory obligations regardless of content.' },
+  'COMP-002': { category: 'SOLICITATION',           title: 'Solicitation Concern',                           description: 'Content directs the audience toward an investment transaction. For a transaction-compensated promoter of a security, this may constitute unregistered broker-dealer activity.' },
+  'COMP-003': { category: 'COMPENSATION_DISCLOSURE',title: 'Compensation Disclosure Insufficient',           description: 'Revenue-share or equity-linked compensation arrangement detected without the ownership-interest disclosure that compensation structure requires.' },
+  'LLM-001':  { category: 'SOLICITATION',           title: 'Solicitation Concern',                           description: 'Content actively directs the audience toward a specific investment transaction. Compensated promoters of securities generally cannot solicit transactions without broker-dealer registration.' },
+  'LLM-002':  { category: 'DISCLOSURE',             title: 'Disclosure Issue',                               description: 'The required compensation disclosure appears missing or inadequate given the apparent promotional context of the content.' },
+  'LLM-003':  { category: 'PERFORMANCE_CLAIM',      title: 'Unverifiable Performance Claim',                 description: 'Content contains performance claims, guarantees, or return expectations that would require substantiation and disclosures absent from this content.' },
+  'LLM-004':  { category: 'URGENCY_PRESSURE',       title: 'Urgency Pressure Tactic',                        description: 'Content uses scarcity, time pressure, or fear-of-missing-out language to induce immediate investor action — a pattern identified as a high-risk marketing tactic.' },
+  'LLM-005':  { category: 'UNBALANCED_RISK',        title: 'Unbalanced Risk Portrayal',                      description: 'Content presents returns or outcomes without corresponding risk disclosure in a manner that may mislead a reasonable investor about the nature of the investment.' },
+};
+const UNKNOWN_FINDING = {
+  category: 'UNKNOWN',
+  title: 'Compliance Review Required',
+  description: 'This content was flagged by an automated review rule and requires supervisor assessment.',
+};
+function getFindingCopy(code) { return (code && FINDING_COPY[code]) || UNKNOWN_FINDING; }
+const _SEV_RANK = { LOW: 0, MEDIUM: 1, HIGH: 2, CRITICAL: 3 };
+function groupDetections(dets) {
+  const byCategory = new Map();
+  (dets || []).forEach(function(d) {
+    const copy = getFindingCopy(d.ruleCode);
+    const sev  = (d.severity || 'LOW').toUpperCase();
+    const lang = (d.matchedPhrase || '').trim();
+    let entry = byCategory.get(copy.category);
+    if (!entry) {
+      entry = { category: copy.category, title: copy.title, description: copy.description, severity: sev, flaggedLanguage: [] };
+      byCategory.set(copy.category, entry);
+    }
+    if ((_SEV_RANK[sev] || 0) > (_SEV_RANK[entry.severity] || 0)) entry.severity = sev;
+    if (lang && entry.flaggedLanguage.indexOf(lang) === -1) entry.flaggedLanguage.push(lang);
+  });
+  return Array.from(byCategory.values()).sort(function(a, b) {
+    return (_SEV_RANK[b.severity] || 0) - (_SEV_RANK[a.severity] || 0);
+  });
+}
+/** True if any detection on the record maps to the given category. */
+function hasCategory(dets, category) {
+  return (dets || []).some(function(d) { return getFindingCopy(d.ruleCode).category === category; });
+}
+
 // ── Auth token ────────────────────────────────────────────────────────
 let authToken = null;
 let currentRole = null;
@@ -8661,11 +8695,18 @@ function _renderReviewEnrichment(id) {
     const crEl = document.getElementById('rev-issue-comp-risk');
     if (crEl) { crEl.textContent = riskMap[s.severity] || '—'; crEl.style.color = riskColor[s.severity] || ''; }
 
-    const hasSolicitation = s.violations.some(v => ['RISK-001', 'RISK-002'].includes(v.code));
+    // Scenario lab Issue Summary — map violation codes through the
+    // public category table so the tiles reflect every detection
+    // source (phrase + LLM), not just a hardcoded phrase-code list.
+    const scenarioDets = (s.violations || []).map(function(v) { return { ruleCode: v.code, severity: v.severity, matchedPhrase: v.phrase }; });
+    const hasSolicitation = hasCategory(scenarioDets, 'SOLICITATION')
+                          || hasCategory(scenarioDets, 'PERFORMANCE_CLAIM')
+                          || hasCategory(scenarioDets, 'UNBALANCED_RISK');
     const solEl = document.getElementById('rev-issue-solicitation');
     if (solEl) { solEl.textContent = hasSolicitation ? 'Detected' : 'Not Detected'; solEl.style.color = hasSolicitation ? 'var(--red)' : 'var(--green)'; }
 
-    const hasDiscIssue = s.violations.some(v => v.code.startsWith('DISC-'));
+    const hasDiscIssue = hasCategory(scenarioDets, 'DISCLOSURE')
+                       || hasCategory(scenarioDets, 'COMPENSATION_DISCLOSURE');
     const discEl = document.getElementById('rev-issue-disclosure');
     if (discEl) { discEl.textContent = hasDiscIssue ? 'Missing' : 'Present'; discEl.style.color = hasDiscIssue ? 'var(--red)' : 'var(--green)'; }
 
@@ -9222,23 +9263,34 @@ function _renderLiveEnrichment(record, comp) {
   }
 
   // ── Issue tiles ───────────────────────────────────────────────────
+  // Reads ALL detection records (phrase + LLM) via the public
+  // category mapping. An LLM-001 solicitation finding flips the
+  // Solicitation tile to Detected regardless of whether a phrase
+  // matcher also fired, and an LLM-002 disclosure finding flips
+  // Disclosure to Missing regardless of the phrase disclosure check.
   var compRiskEl   = document.getElementById('rev-issue-comp-risk');
   var solicitEl    = document.getElementById('rev-issue-solicitation');
   var disclosureEl = document.getElementById('rev-issue-disclosure');
 
   var detections = record.detectionRecords || [];
-  var hasComp = detections.some(function(d) { return d.ruleCode && d.ruleCode.indexOf('COMP') === 0; });
-  var hasRisk = detections.some(function(d) { return d.ruleCode && d.ruleCode.indexOf('RISK') === 0; });
-  var hasDisc = detections.some(function(d) { return d.ruleCode === 'DISC-001'; });
+  var hasCompStructure = hasCategory(detections, 'COMPENSATION_STRUCTURE');
+  var hasRisk = hasCategory(detections, 'PERFORMANCE_CLAIM')
+             || hasCategory(detections, 'UNBALANCED_RISK')
+             || hasCategory(detections, 'FORWARD_LOOKING')
+             || hasCategory(detections, 'URGENCY_PRESSURE')
+             || hasCategory(detections, 'TESTIMONIAL');
+  var hasSol  = hasCategory(detections, 'SOLICITATION');
+  var hasDisc = hasCategory(detections, 'DISCLOSURE')
+             || hasCategory(detections, 'COMPENSATION_DISCLOSURE');
 
   if (compRiskEl) {
     var isCritOrHigh = ['CRITICAL','HEIGHTENED','HIGH','ELEVATED'].includes(postureKey);
-    compRiskEl.textContent = hasComp ? '⚠ Flagged' : isCritOrHigh ? '⚠ Elevated' : '✓ Within Limits';
-    compRiskEl.style.color = (hasComp || isCritOrHigh) ? 'var(--red)' : 'var(--green)';
+    compRiskEl.textContent = hasCompStructure ? '⚠ Flagged' : isCritOrHigh ? '⚠ Elevated' : '✓ Within Limits';
+    compRiskEl.style.color = (hasCompStructure || isCritOrHigh) ? 'var(--red)' : 'var(--green)';
   }
   if (solicitEl) {
-    solicitEl.textContent = hasRisk ? '⚠ Detected' : '✓ Not Detected';
-    solicitEl.style.color = hasRisk ? 'var(--red)' : 'var(--green)';
+    solicitEl.textContent = hasSol ? '⚠ Detected' : '✓ Not Detected';
+    solicitEl.style.color = hasSol ? 'var(--red)' : 'var(--green)';
   }
   if (disclosureEl) {
     disclosureEl.textContent = hasDisc ? '✗ Missing' : '✓ Present';
@@ -9498,36 +9550,44 @@ async function loadReviewRecord() {
       urlHtml;
   }
 
-  // Detection records
+  // Compliance findings — grouped by public category so the UI
+  // never exposes internal rule codes or detection methods. Multiple
+  // detections with the same category collapse into one card.
   const dets = rec.detectionRecords || [];
-  _s('rev-detections-label', 'Detection Records — ' + dets.length + ' rule' + (dets.length !== 1 ? 's' : '') + ' matched');
+  const groupedFindings = groupDetections(dets);
+  _s('rev-detections-label', 'Compliance Findings — ' + groupedFindings.length + ' issue' + (groupedFindings.length !== 1 ? 's' : '') + ' identified');
   const dbEl = document.getElementById('rev-detections-body');
   if (dbEl) {
-    if (!dets.length) {
-      dbEl.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:8px 0">No detection records.</div>';
+    if (!groupedFindings.length) {
+      dbEl.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:8px 0">No compliance issues identified.</div>';
     } else {
-      dbEl.innerHTML = dets.map(function(d) {
-        var dc  = (d.severity || '').toUpperCase();
+      dbEl.innerHTML = groupedFindings.map(function(g) {
+        var dc  = g.severity;
         var cls = dc === 'CRITICAL' ? 'critical' : dc === 'HIGH' ? 'high' : dc === 'MEDIUM' ? 'medium' : '';
-        var rat = (typeof REG_RATIONALE !== 'undefined' && REG_RATIONALE[d.ruleCode])
-          ? '<div class="flag-reg">' + esc(REG_RATIONALE[d.ruleCode]) + '</div>' : '';
+        var phrases = g.flaggedLanguage.map(function(p) {
+          return '<div style="padding:3px 0"><mark>' + esc(p) + '</mark></div>';
+        }).join('');
+        var phraseBlock = g.flaggedLanguage.length
+          ? '<div class="flag-exc"><div style="font-size:9.5px;font-family:\'IBM Plex Mono\',monospace;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:4px">Flagged language</div>' + phrases + '</div>'
+          : '';
         return '<div class="flag-item ' + cls + '">' +
           '<div class="flag-hdr">' +
-          '<span class="flag-code">' + esc(d.ruleCode) + '</span>' +
           '<span class="sev ' + sevCls(dc) + '"><span class="sev-dot"></span>' + esc(dc) + '</span>' +
-          '<span class="flag-name">' + esc(d.ruleName || '') + '</span>' +
+          '<span class="flag-name" style="font-weight:700">' + esc(g.title) + '</span>' +
           '</div>' +
-          '<div class="flag-exc">Matched: <mark>' + esc(d.matchedPhrase || '') + '</mark>' +
-          '<br>Method: ' + esc(d.detectionMethod || 'PHRASE_MATCH') + '</div>' +
-          rat + '</div>';
+          '<div style="font-size:10.5px;line-height:1.5;color:var(--text-secondary);margin:6px 0 8px 0">' + esc(g.description) + '</div>' +
+          phraseBlock +
+          '</div>';
       }).join('');
     }
   }
 
-  // Decision panel header
+  // Decision panel header — show plain-English finding titles,
+  // never rule codes. Dedupe across categories.
   _s('rev-dec-name', name_);
   _s('rev-dec-meta', recId + (handle ? ' · @' + handle : '') + ' · ' + platform);
-  _s('rev-rules-hit', dets.map(function(d) { return d.ruleCode; }).join(' · ') || 'No rule hits');
+  var titleList = groupedFindings.map(function(g) { return g.title; });
+  _s('rev-rules-hit', titleList.length ? titleList.join(' · ') : 'No compliance issues identified');
 
   var cits = dets.map(function(d) {
     return (typeof REG_CITATIONS !== 'undefined' && REG_CITATIONS[d.ruleCode]) || null;
@@ -9599,11 +9659,16 @@ async function loadReviewRecord() {
   var crEl = document.getElementById('rev-issue-comp-risk');
   if (crEl) { crEl.textContent = riskLabel[sevRaw] || '—'; crEl.style.color = riskColor[sevRaw] || ''; }
 
-  var hasSol  = dets.some(function(d) { return d.ruleCode === 'RISK-001' || d.ruleCode === 'RISK-002'; });
+  // Issue tiles read from ALL detection records (phrase + LLM),
+  // grouped by public category. A solicitation finding from LLM-001
+  // must flip the Solicitation tile to Detected even when no phrase
+  // match fired, and a disclosure finding from LLM-002 must flip
+  // the Disclosure tile to Missing regardless of phrase source.
+  var hasSol  = hasCategory(dets, 'SOLICITATION');
   var solEl   = document.getElementById('rev-issue-solicitation');
   if (solEl)  { solEl.textContent  = hasSol  ? 'Detected'  : 'Not Detected'; solEl.style.color  = hasSol  ? 'var(--red)' : 'var(--green)'; }
 
-  var hasDisc = dets.some(function(d) { return d.ruleCode && d.ruleCode.indexOf('DISC-') === 0; });
+  var hasDisc = hasCategory(dets, 'DISCLOSURE') || hasCategory(dets, 'COMPENSATION_DISCLOSURE');
   var discEl  = document.getElementById('rev-issue-disclosure');
   if (discEl) { discEl.textContent = hasDisc ? 'Missing'   : 'Present';      discEl.style.color = hasDisc ? 'var(--red)' : 'var(--green)'; }
 
