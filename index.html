@@ -850,9 +850,9 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <div id="rev-page-title" class="ph-title" style="font-size:16px">Flag Review &#8212; FLG-1029</div>
     </div>
     <div class="ph-actions">
-      <span style="font-size:10px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace">1 of 5 in queue</span>
+      <span id="rev-queue-pos" style="font-size:10px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace"></span>
       <button class="btn btn-ghost btn-sm" onclick="go('queue')">&#8592; Queue</button>
-      <button class="btn btn-secondary btn-sm">Next &#8594;</button>
+      <button class="btn btn-secondary btn-sm" onclick="reviewNextRecord()">Next &#8594;</button>
     </div>
   </div>
 
@@ -1515,7 +1515,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <div>
       <div class="ph-bc">Monitoring › Captures</div>
       <div class="ph-title">Captured Communications</div>
-      <div class="ph-sub">Immutable evidence store · 1,847 total captures · SHA-256 per record</div>
+      <div class="ph-sub" id="captures-subtitle">Immutable evidence store · — total captures · SHA-256 per record</div>
     </div>
     <div class="ph-actions">
       <select id="captures-filter-status" class="fi" style="width:140px" onchange="capturesPage=1;loadContentRecords()"><option value="">All Status</option><option value="CAPTURED">Captured</option><option value="PENDING_REVIEW">Pending Review</option><option value="REVIEWED">Reviewed</option><option value="ESCALATED">Escalated</option><option value="CLOSED">Closed</option></select>
@@ -5528,9 +5528,9 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <div id="gd-title" style="font-weight:700;font-size:15px;margin-bottom:6px;color:#fff;line-height:1.3"></div>
       <div id="gd-narrative" style="font-size:12px;color:var(--text-secondary);line-height:1.6;margin-bottom:10px"></div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button id="gd-prev" class="btn btn-ghost btn-sm" onclick="guidedDemoStep(-1)" style="font-size:10px">← Back</button>
+        <button id="gd-prev" class="btn btn-secondary btn-sm" onclick="guidedDemoStep(-1)" style="font-size:10px;border:1px solid var(--border);color:var(--text-muted);background:transparent">← Back</button>
         <div id="gd-dots" style="display:flex;gap:5px;flex:1;justify-content:center"></div>
-        <button id="gd-next" class="btn btn-secondary btn-sm" onclick="guidedDemoStep(1)" style="font-size:10px;border-color:var(--cyan);color:var(--cyan)">Next →</button>
+        <button id="gd-next" class="btn btn-primary btn-sm" onclick="guidedDemoStep(1)" style="font-size:10px;background:var(--amber);color:#0a0800;border:1px solid var(--amber);font-weight:600">Next →</button>
       </div>
     </div>
   </div>
@@ -6126,6 +6126,7 @@ async function loadReviewQueue() {
     const tallyStr = Object.entries(tally).filter(([,n]) => n > 0).map(([k,n]) => n + ' ' + k).join(' · ');
     elSubtitle.textContent = queue.length + ' record' + (queue.length !== 1 ? 's' : '') + ' pending supervisory review · ' + tallyStr;
 
+    window._currentQueue = queue;
     queue.forEach((rec, idx) => {
       const displayName  = rec.ambassador?.displayName ?? '—';
       const platform     = rec.sourcePlatform           ?? '—';
@@ -6755,6 +6756,8 @@ async function loadContentRecords() {
     elTable.style.display = 'table';
     elPager.style.display = 'flex';
     elPagerInfo.textContent = 'Page ' + capturesPage + ' of ' + totalPages + ' · ' + total + ' total records';
+    var subEl = document.getElementById('captures-subtitle');
+    if (subEl) subEl.textContent = 'Immutable evidence store · ' + total.toLocaleString() + ' total captures · SHA-256 per record';
     document.getElementById('captures-pager-prev').disabled = capturesPage <= 1;
     document.getElementById('captures-pager-next').disabled = capturesPage >= totalPages;
 
@@ -9266,6 +9269,20 @@ function _renderLiveEnrichment(record, comp) {
   }
 }
 
+function reviewNextRecord() {
+  const q = window._currentQueue || [];
+  if (!q.length || !currentReviewRecordId) { go('queue'); return; }
+  const idx = q.findIndex(r => r.id === currentReviewRecordId);
+  const next = q[idx + 1];
+  if (next) {
+    currentReviewRecordId = next.id;
+    window._currentReviewRec = next;
+    loadReviewRecord();
+  } else {
+    go('queue');
+  }
+}
+
 async function loadReviewRecord() {
   if (!currentReviewRecordId) return;
   const hdrs = authToken ? { 'Authorization': 'Bearer ' + authToken } : {};
@@ -9301,6 +9318,14 @@ async function loadReviewRecord() {
 
   // Page header
   _s('rev-page-title', 'Flag Review — ' + recId);
+
+  // Update queue position indicator
+  var queuePosEl = document.getElementById('rev-queue-pos');
+  if (queuePosEl) {
+    var q = window._currentQueue || [];
+    var idx = q.findIndex(function(r) { return r.id === recId; });
+    queuePosEl.textContent = (idx >= 0 && q.length) ? ((idx + 1) + ' of ' + q.length + ' in queue') : '';
+  }
   _s('rev-flag-id',    recId);
   _s('rev-promoter-name', name_);
 
