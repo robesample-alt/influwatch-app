@@ -6597,12 +6597,20 @@ async function updateNotificationBell() {
   if (!el) return;
 
   try {
-    const res = await fetch('https://influwatch-backend.onrender.com/api/influwatch/content-records?pageSize=500', {
-      headers: { 'Authorization': 'Bearer ' + authToken },
-    });
-    if (!res.ok) return;
-    const data = await res.json();
-    const records = data.data || [];
+    // Fetch all pages (backend caps pageSize at 100)
+    let records = [];
+    let page = 1;
+    while (true) {
+      const res = await fetch('https://influwatch-backend.onrender.com/api/influwatch/content-records?pageSize=100&page=' + page, {
+        headers: { 'Authorization': 'Bearer ' + authToken },
+      });
+      if (!res.ok) break;
+      const data = await res.json();
+      records = records.concat(data.data || []);
+      if (page >= (data.totalPages || 1)) break;
+      page++;
+      if (page > 20) break; // safety
+    }
 
     // Critical not yet reviewed + High pending + any SLA breached
     const attention = records.filter(function(r) {
@@ -6636,11 +6644,7 @@ async function loadDashboardMetrics() {
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 
   try {
-    const [ambRes, recRes] = await Promise.all([
-      fetch('https://influwatch-backend.onrender.com/api/influwatch/ambassadors', { headers: hdrs }),
-      fetch('https://influwatch-backend.onrender.com/api/influwatch/content-records?pageSize=500', { headers: hdrs }),
-    ]);
-
+    const ambRes = await fetch('https://influwatch-backend.onrender.com/api/influwatch/ambassadors', { headers: hdrs });
     if (ambRes.ok) {
       const amb = await ambRes.json();
       const list = Array.isArray(amb) ? amb : (amb.data || []);
@@ -6649,10 +6653,21 @@ async function loadDashboardMetrics() {
       set('dash-metric-promoters-sub', active + ' active · ' + (list.length - active) + ' other');
     }
 
-    if (recRes.ok) {
+    // Fetch all content records across pages
+    let records = [];
+    let total = 0;
+    let page = 1;
+    while (true) {
+      const recRes = await fetch('https://influwatch-backend.onrender.com/api/influwatch/content-records?pageSize=100&page=' + page, { headers: hdrs });
+      if (!recRes.ok) break;
       const recData = await recRes.json();
-      const records = recData.data || [];
-      const total = recData.total || records.length;
+      records = records.concat(recData.data || []);
+      total = recData.total || records.length;
+      if (page >= (recData.totalPages || 1)) break;
+      page++;
+      if (page > 20) break;
+    }
+    if (records.length) {
       set('dash-metric-records', total);
       set('dash-metric-records-sub', records.length + ' shown · ' + total + ' total');
 
