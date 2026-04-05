@@ -1036,14 +1036,14 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
           <button onclick="collapseSupPanel()" style="background:none;border:1px solid var(--border);color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:8px;padding:4px 7px;cursor:pointer;border-radius:3px;white-space:nowrap;flex-shrink:0" title="Collapse panel">&#8592; Hide</button>
         </div>
 
-        <!-- SLA Breach -->
-        <div class="sup-compliance-only" style="padding:9px 12px;border-bottom:1px solid var(--border);background:var(--bg-base)">
-          <div style="background:var(--red-dim);border:1px solid var(--red-bdr);padding:7px 10px;display:flex;align-items:center;justify-content:space-between;border-radius:3px">
+        <!-- SLA Breach / Status -->
+        <div class="sup-compliance-only" id="sup-sla-wrap" style="padding:9px 12px;border-bottom:1px solid var(--border);background:var(--bg-base);display:none">
+          <div id="sup-sla-box" style="padding:7px 10px;display:flex;align-items:center;justify-content:space-between;border-radius:3px;border:1px solid">
             <div>
-              <div style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:0.1em;color:var(--red);text-transform:uppercase">&#9888; SLA BREACHED</div>
-              <div style="font-size:9px;color:var(--red);opacity:0.75;margin-top:1px">Critical 24h limit &#183; +07:14:33 overdue</div>
+              <div id="sup-sla-label" style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:0.1em;text-transform:uppercase"></div>
+              <div id="sup-sla-detail" style="font-size:9px;opacity:0.75;margin-top:1px"></div>
             </div>
-            <div style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:700;color:var(--red)">+07:14</div>
+            <div id="sup-sla-value" style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:700"></div>
           </div>
         </div>
 
@@ -9238,6 +9238,50 @@ function _renderLiveEnrichment(record, comp) {
       'LOW':      'This content presents low supervisory risk. Routine review applies.',
     };
     assessment.textContent = sevMap[record.severity] || 'Severity could not be determined. Manual assessment required.';
+  }
+
+  // ── SLA Breach indicator (live from API) ──────────────────────────
+  var slaWrap   = document.getElementById('sup-sla-wrap');
+  var slaBox    = document.getElementById('sup-sla-box');
+  var slaLabel  = document.getElementById('sup-sla-label');
+  var slaDetail = document.getElementById('sup-sla-detail');
+  var slaValue  = document.getElementById('sup-sla-value');
+  if (slaWrap && slaBox && slaLabel && slaDetail && slaValue) {
+    var isActiveStatus = ['PENDING_REVIEW','ESCALATED','CAPTURED'].includes(record.archiveStatus);
+    var hoursRemaining = typeof record.slaHoursRemaining === 'number' ? record.slaHoursRemaining : null;
+    var sevLimitMap = { CRITICAL: 24, HIGH: 48, MEDIUM: 120, LOW: 240 };
+    var limitHours  = sevLimitMap[record.severity] || 240;
+
+    if (!isActiveStatus || hoursRemaining === null) {
+      slaWrap.style.display = 'none';
+    } else if (record.slaBreached) {
+      slaWrap.style.display = 'block';
+      var overdue = Math.abs(hoursRemaining);
+      var oh = Math.floor(overdue);
+      var om = Math.floor((overdue - oh) * 60);
+      slaBox.style.background = 'var(--red-dim)';
+      slaBox.style.borderColor = 'var(--red-bdr)';
+      slaLabel.style.color = 'var(--red)';
+      slaLabel.textContent = '⚠ SLA BREACHED';
+      slaDetail.style.color = 'var(--red)';
+      slaDetail.textContent = (record.severity || '—') + ' ' + limitHours + 'h limit · +' + oh + 'h ' + (om < 10 ? '0' + om : om) + 'm overdue';
+      slaValue.style.color = 'var(--red)';
+      slaValue.textContent = '+' + oh + ':' + (om < 10 ? '0' + om : om);
+    } else {
+      slaWrap.style.display = 'block';
+      var rh = Math.floor(hoursRemaining);
+      var rm = Math.floor((hoursRemaining - rh) * 60);
+      var pctRemaining = limitHours > 0 ? hoursRemaining / limitHours : 1;
+      var warn = pctRemaining < 0.25;
+      slaBox.style.background = warn ? 'rgba(245,158,11,0.1)' : 'rgba(74,222,128,0.05)';
+      slaBox.style.borderColor = warn ? 'var(--amber-bdr)' : 'rgba(74,222,128,0.3)';
+      slaLabel.style.color = warn ? 'var(--amber)' : 'var(--green)';
+      slaLabel.textContent = warn ? '⏱ SLA WARNING' : '✓ WITHIN SLA';
+      slaDetail.style.color = warn ? 'var(--amber)' : 'var(--green)';
+      slaDetail.textContent = (record.severity || '—') + ' ' + limitHours + 'h limit · ' + rh + 'h ' + (rm < 10 ? '0' + rm : rm) + 'm remaining';
+      slaValue.style.color = warn ? 'var(--amber)' : 'var(--green)';
+      slaValue.textContent = rh + ':' + (rm < 10 ? '0' + rm : rm);
+    }
   }
 
   // ── Supervision Detail fields ─────────────────────────────────────
