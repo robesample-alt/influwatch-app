@@ -8897,14 +8897,14 @@ function _renderLiveEnrichment(record, comp) {
   if (regMeaning) {
     var postureKey = record.compensationPosture || '';
     var meaningMap = {
-      'CRITICAL':      'This promoter is compensated based on transaction outcomes. Their content is subject to heightened supervisory review because their financial incentive is directly tied to viewer action. Any solicitation behavior requires immediate evaluation.',
-      'HEIGHTENED':    'This promoter is compensated based on transaction outcomes. Their content is subject to heightened supervisory review because their financial incentive is directly tied to viewer action. Any solicitation behavior requires immediate evaluation.',
-      'HIGH':          'This promoter is compensated in a way that creates elevated regulatory risk. Their content must be reviewed for solicitation behavior and disclosure compliance before any action is taken.',
-      'ELEVATED':      'This promoter is compensated in a way that creates elevated regulatory risk. Their content must be reviewed for solicitation behavior and disclosure compliance before any action is taken.',
-      'MEDIUM':        'This promoter is compensated under a standard arrangement. Their content is subject to routine supervisory review for disclosure compliance and behavioral boundaries.',
-      'STANDARD':      'This promoter is compensated under a standard arrangement. Their content is subject to routine supervisory review for disclosure compliance and behavioral boundaries.',
-      'LOW':           'This promoter is not compensated. Content is monitored for behavioral boundaries and disclosure obligations. Lower supervisory priority unless violations are detected.',
-      'UNCOMPENSATED': 'This promoter is not compensated. Content is monitored for behavioral boundaries and disclosure obligations. Lower supervisory priority unless violations are detected.',
+      'CRITICAL':      'This promoter is paid per conversion — every investment transaction triggers their compensation. This is the highest regulatory risk posture. Content has been auto-escalated and requires registered principal review before any action.',
+      'HEIGHTENED':    'This promoter is paid per conversion — every investment transaction triggers their compensation. This is the highest regulatory risk posture. Content has been auto-escalated and requires registered principal review before any action.',
+      'HIGH':          'This promoter earns a percentage of ongoing revenue from referred investors. Elevated persuasion incentive exists. Principal review is required — this content cannot be cleared by a reviewer alone.',
+      'ELEVATED':      'This promoter earns a percentage of ongoing revenue from referred investors. Elevated persuasion incentive exists. Principal review is required — this content cannot be cleared by a reviewer alone.',
+      'MEDIUM':        'This promoter was paid a flat fee regardless of investment volume. Standard supervisory review required. A missing compensation disclosure was detected — correction required before this content can be approved.',
+      'STANDARD':      'This promoter was paid a flat fee regardless of investment volume. Standard supervisory review required. A missing compensation disclosure was detected — correction required before this content can be approved.',
+      'LOW':           'This promoter has no compensation agreement. Standard logging applies. Detection engine found no violations. Content is cleared — audit trail is complete.',
+      'UNCOMPENSATED': 'This promoter has no compensation agreement. Standard logging applies. Detection engine found no violations. Content is cleared — audit trail is complete.',
     };
     regMeaning.textContent = meaningMap[postureKey] || 'Compensation posture could not be determined. Manual classification required before supervisory decision.';
   }
@@ -8920,8 +8920,9 @@ function _renderLiveEnrichment(record, comp) {
   var hasDisc = detections.some(function(d) { return d.ruleCode === 'DISC-001'; });
 
   if (compRiskEl) {
-    compRiskEl.textContent = hasComp ? '⚠ Flagged' : record.compensationPosture === 'HEIGHTENED' ? '⚠ Heightened' : '✓ Within Limits';
-    compRiskEl.style.color = (hasComp || record.compensationPosture === 'HEIGHTENED') ? 'var(--red)' : 'var(--green)';
+    var isCritOrHigh = ['CRITICAL','HEIGHTENED','HIGH','ELEVATED'].includes(postureKey);
+    compRiskEl.textContent = hasComp ? '⚠ Flagged' : isCritOrHigh ? '⚠ Elevated' : '✓ Within Limits';
+    compRiskEl.style.color = (hasComp || isCritOrHigh) ? 'var(--red)' : 'var(--green)';
   }
   if (solicitEl) {
     solicitEl.textContent = hasRisk ? '⚠ Detected' : '✓ Not Detected';
@@ -8930,6 +8931,61 @@ function _renderLiveEnrichment(record, comp) {
   if (disclosureEl) {
     disclosureEl.textContent = hasDisc ? '✗ Missing' : '✓ Present';
     disclosureEl.style.color = hasDisc ? 'var(--red)' : 'var(--green)';
+  }
+
+  // ── Conditional solicitation context message ──────────────────────
+  var solicitCtxEl = document.getElementById('rev-solicitation-context');
+  if (!solicitCtxEl) {
+    // Create the element if it doesn't exist yet
+    var issueParent = solicitEl ? solicitEl.closest('div[style]')?.parentElement : null;
+    if (issueParent) {
+      solicitCtxEl = document.createElement('div');
+      solicitCtxEl.id = 'rev-solicitation-context';
+      solicitCtxEl.style.cssText = 'grid-column:1/-1;padding:8px 11px;font-size:10.5px;line-height:1.55;background:var(--bg-panel);border:1px solid var(--border);border-radius:2px;margin-top:4px';
+      issueParent.appendChild(solicitCtxEl);
+    }
+  }
+  if (solicitCtxEl) {
+    if (!hasRisk && ['MEDIUM','STANDARD','HIGH','ELEVATED'].includes(postureKey)) {
+      solicitCtxEl.style.display = 'block';
+      solicitCtxEl.style.color = 'var(--amber)';
+      solicitCtxEl.textContent = 'No solicitation phrases detected. This promoter has a compensation relationship that requires supervisory review. Whether this content crosses from promotion into solicitation is a judgment that belongs to your registered principal.';
+    } else if (!hasRisk && ['LOW','UNCOMPENSATED'].includes(postureKey)) {
+      solicitCtxEl.style.display = 'block';
+      solicitCtxEl.style.color = 'var(--green)';
+      solicitCtxEl.textContent = 'No compensation relationship. No violations detected. Logged for record completeness.';
+    } else {
+      solicitCtxEl.style.display = 'none';
+    }
+  }
+
+  // ── Tiered routing badge ──────────────────────────────────────────
+  var routingEl = document.getElementById('rev-routing-badge');
+  if (!routingEl) {
+    var assessParent = document.getElementById('rev-overall-assessment');
+    if (assessParent && assessParent.parentElement) {
+      routingEl = document.createElement('div');
+      routingEl.id = 'rev-routing-badge';
+      routingEl.style.cssText = 'margin-top:10px;padding:8px 12px;font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;border-radius:3px;text-align:center';
+      assessParent.parentElement.insertBefore(routingEl, assessParent.nextSibling);
+    }
+  }
+  if (routingEl) {
+    var routingMap = {
+      'CRITICAL':  { text: 'PRINCIPAL ONLY — AUTO-ESCALATED',   bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.4)', color: 'var(--red)' },
+      'HEIGHTENED':{ text: 'PRINCIPAL ONLY — AUTO-ESCALATED',   bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.4)', color: 'var(--red)' },
+      'HIGH':      { text: 'PRINCIPAL REVIEW REQUIRED',          bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.4)', color: 'var(--orange)' },
+      'ELEVATED':  { text: 'PRINCIPAL REVIEW REQUIRED',          bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.4)', color: 'var(--orange)' },
+      'MEDIUM':    { text: 'REVIEWER ACTION REQUIRED',           bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.3)', color: 'var(--amber)' },
+      'STANDARD':  { text: 'REVIEWER ACTION REQUIRED',           bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.3)', color: 'var(--amber)' },
+      'LOW':       { text: 'AUTO-CLEARED — LOGGED FOR AUDIT',    bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.3)', color: 'var(--green)' },
+      'UNCOMPENSATED':{ text: 'AUTO-CLEARED — LOGGED FOR AUDIT', bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.3)', color: 'var(--green)' },
+    };
+    var route = routingMap[postureKey] || { text: 'REVIEW REQUIRED', bg: 'var(--bg-panel)', border: 'var(--border)', color: 'var(--text-muted)' };
+    routingEl.textContent = route.text;
+    routingEl.style.background = route.bg;
+    routingEl.style.border = '1px solid ' + route.border;
+    routingEl.style.color = route.color;
   }
 
   // ── Overall assessment ────────────────────────────────────────────
