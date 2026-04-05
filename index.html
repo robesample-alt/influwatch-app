@@ -5470,6 +5470,15 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
           <span style="font-size:9.5px;color:var(--cyan);font-family:'IBM Plex Mono',monospace;margin-left:auto">Start Demo →</span>
         </div>
       </div>
+
+      <div onclick="startGuidedDemo('scenario3')" style="padding:18px 20px;border:1px solid rgba(6,182,212,0.3);background:rgba(6,182,212,0.05);cursor:pointer;border-radius:2px;transition:all 0.12s;margin-top:12px" onmouseenter="this.style.borderColor='var(--cyan)';this.style.background='rgba(6,182,212,0.1)'" onmouseleave="this.style.borderColor='rgba(6,182,212,0.3)';this.style.background='rgba(6,182,212,0.05)'">
+        <div style="font-weight:700;font-size:15px;margin-bottom:4px">The Hadrius Gap</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px">"We already have Hadrius." Great — here's what it doesn't cover, and why your firm still has an open supervisory gap on external promoters.</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:9px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted)">Internal vs. External Supervision · FINRA Rule 3110</span>
+          <span style="font-size:9.5px;color:var(--cyan);font-family:'IBM Plex Mono',monospace;margin-left:auto">Start Demo →</span>
+        </div>
+      </div>
     </div>
 
   </div><!-- /padding wrapper -->
@@ -5481,6 +5490,20 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
   <div style="font-size:8px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.18em;color:var(--cyan);margin-bottom:20px;background:rgba(6,182,212,0.1);padding:4px 12px;border:1px solid rgba(6,182,212,0.3)">GUIDED DEMO</div>
   <div id="gd-card-title" style="font-size:26px;font-weight:700;color:#fff;max-width:600px;line-height:1.25;margin-bottom:16px"></div>
   <div id="gd-card-detail" style="font-size:14px;color:var(--text-secondary);max-width:500px;line-height:1.7"></div>
+</div>
+
+<!-- Guided demo side-by-side comparison screen -->
+<div id="gd-compare-screen" style="display:none;align-items:stretch;justify-content:center;position:fixed;top:46px;left:200px;right:0;bottom:140px;background:var(--bg-base);z-index:8999;padding:40px;gap:24px">
+  <div id="gd-compare-left" style="flex:1;max-width:480px;border:1px solid var(--border);background:var(--bg-panel);padding:24px;display:flex;flex-direction:column">
+    <div id="gd-compare-left-label" style="font-size:10px;font-family:'IBM Plex Mono',monospace;letter-spacing:0.18em;color:var(--text-muted);margin-bottom:4px"></div>
+    <div id="gd-compare-left-sub" style="font-size:18px;font-weight:700;color:#fff;margin-bottom:20px"></div>
+    <ul id="gd-compare-left-items" style="list-style:none;padding:0;margin:0;font-size:13px;color:var(--text-secondary);line-height:1.9"></ul>
+  </div>
+  <div id="gd-compare-right" style="flex:1;max-width:480px;border:1px solid var(--cyan);background:rgba(6,182,212,0.04);padding:24px;display:flex;flex-direction:column">
+    <div id="gd-compare-right-label" style="font-size:10px;font-family:'IBM Plex Mono',monospace;letter-spacing:0.18em;color:var(--cyan);margin-bottom:4px"></div>
+    <div id="gd-compare-right-sub" style="font-size:18px;font-weight:700;color:#fff;margin-bottom:20px"></div>
+    <ul id="gd-compare-right-items" style="list-style:none;padding:0;margin:0;font-size:13px;color:var(--text-secondary);line-height:1.9"></ul>
+  </div>
 </div>
 
 <div id="guided-demo-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:9000;pointer-events:none">
@@ -8638,12 +8661,52 @@ const GUIDED_STEPS_2 = [
   },
 ];
 
+const GUIDED_STEPS_3 = [
+  {
+    type: 'card',
+    title: 'You have Hadrius. Good. Here\'s what it doesn\'t cover.',
+    narrative: 'Hadrius is built for internal firm compliance — employees, registered reps, pre-publication review. InfluWatch is built for external compensated promoters. They solve different problems.',
+  },
+  {
+    type: 'comparison',
+    title: 'Hadrius watches your employees. InfluWatch watches your promoters.',
+    narrative: 'Two different supervisory obligations. Two different systems.',
+    left: {
+      label: 'HADRIUS',
+      subtitle: 'Internal Compliance',
+      items: ['Pre-publication review', 'Employee oversight', 'Internal communications archiving', 'Registered rep supervision', 'Personal device monitoring', 'Firm-employee communications'],
+    },
+    right: {
+      label: 'INFLUWATCH',
+      subtitle: 'External Promoter Supervision',
+      items: ['External promoter monitoring', 'Compensation classification', 'Off-platform content capture', 'Solicitation detection', 'Affiliate link tracking', 'Post-publication monitoring'],
+    },
+  },
+  {
+    type: 'navigate',
+    screen: 'promoters',
+    title: 'None of these people work for the firm.',
+    narrative: 'They are compensated external promoters. Hadrius has no visibility into them. FINRA holds your firm responsible for every one of them.',
+  },
+  {
+    type: 'record',
+    recordId: 'CR-DEMO-01',
+    title: 'This is the gap Hadrius leaves open.',
+    narrative: 'Marcus is not an employee. He is not in Hadrius. But he is paid per conversion, posting on YouTube, and your firm is responsible for his content under FINRA Rule 3110.',
+  },
+  {
+    type: 'card',
+    title: 'Add InfluWatch to what you have with Hadrius.',
+    narrative: 'Not a replacement. A complementary layer. Hadrius handles your inside. InfluWatch handles your outside. Together they close the supervisory gap FINRA is actively examining.',
+  },
+];
+
 let _gdStep = 0;
 let _gdActive = false;
 let _gdSteps = GUIDED_STEPS;
 
 function startGuidedDemo(scenario) {
-  _gdSteps = scenario === 'scenario2' ? GUIDED_STEPS_2 : GUIDED_STEPS;
+  _gdSteps = scenario === 'scenario2' ? GUIDED_STEPS_2 : scenario === 'scenario3' ? GUIDED_STEPS_3 : GUIDED_STEPS;
   _gdStep = 0;
   _gdActive = true;
   document.getElementById('guided-demo-overlay').style.display = 'block';
@@ -8657,6 +8720,7 @@ function exitGuidedDemo() {
   _gdActive = false;
   document.getElementById('guided-demo-overlay').style.display = 'none';
   document.getElementById('gd-card-screen').style.display = 'none';
+  document.getElementById('gd-compare-screen').style.display = 'none';
   document.querySelector('.main').style.paddingBottom = '0';
   var wm = document.querySelector('.wm-banner');
   if (wm) wm.style.display = 'flex';
@@ -8690,8 +8754,9 @@ function renderGuidedStep() {
     '<div style="width:8px;height:8px;border-radius:50%;background:' + (i === _gdStep ? 'var(--cyan)' : 'var(--border)') + ';transition:background 0.2s"></div>'
   ).join('');
 
-  // Hide card screen by default
+  // Hide overlay screens by default
   document.getElementById('gd-card-screen').style.display = 'none';
+  document.getElementById('gd-compare-screen').style.display = 'none';
 
   if (step.type === 'record') {
     currentReviewRecordId = step.recordId;
@@ -8700,6 +8765,16 @@ function renderGuidedStep() {
   } else if (step.type === 'navigate') {
     if (step.preFilter) step.preFilter();
     go(step.screen);
+  } else if (step.type === 'comparison') {
+    document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+    var compScreen = document.getElementById('gd-compare-screen');
+    compScreen.style.display = 'flex';
+    document.getElementById('gd-compare-left-label').textContent  = step.left.label;
+    document.getElementById('gd-compare-left-sub').textContent    = step.left.subtitle;
+    document.getElementById('gd-compare-left-items').innerHTML    = step.left.items.map(function(x) { return '<li style="padding:4px 0;border-bottom:1px solid var(--border)">' + esc(x) + '</li>'; }).join('');
+    document.getElementById('gd-compare-right-label').textContent = step.right.label;
+    document.getElementById('gd-compare-right-sub').textContent   = step.right.subtitle;
+    document.getElementById('gd-compare-right-items').innerHTML   = step.right.items.map(function(x) { return '<li style="padding:4px 0;border-bottom:1px solid var(--border)">→ ' + esc(x) + '</li>'; }).join('');
   } else {
     // Card steps — full-screen card
     document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
