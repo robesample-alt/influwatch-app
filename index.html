@@ -5479,6 +5479,15 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
           <span style="font-size:9.5px;color:var(--cyan);font-family:'IBM Plex Mono',monospace;margin-left:auto">Start Demo →</span>
         </div>
       </div>
+
+      <div onclick="startGuidedDemo('scenario4')" style="padding:18px 20px;border:1px solid rgba(6,182,212,0.3);background:rgba(6,182,212,0.05);cursor:pointer;border-radius:2px;transition:all 0.12s;margin-top:12px" onmouseenter="this.style.borderColor='var(--cyan)';this.style.background='rgba(6,182,212,0.1)'" onmouseleave="this.style.borderColor='rgba(6,182,212,0.3)';this.style.background='rgba(6,182,212,0.05)'">
+        <div style="font-weight:700;font-size:15px;margin-bottom:4px">New Promoter Onboarding</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px">From zero to monitored in under 10 minutes. Watch the complete onboarding flow — register, classify, connect social accounts, and go live.</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:9px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted)">Register → Classify → Monitor → Connect</span>
+          <span style="font-size:9.5px;color:var(--cyan);font-family:'IBM Plex Mono',monospace;margin-left:auto">Start Demo →</span>
+        </div>
+      </div>
     </div>
 
   </div><!-- /padding wrapper -->
@@ -8701,12 +8710,52 @@ const GUIDED_STEPS_3 = [
   },
 ];
 
+const GUIDED_STEPS_4 = [
+  {
+    type: 'card',
+    title: 'New promoter. New risk. New supervisory obligation.',
+    narrative: 'Before a compensated promoter publishes a single post, your firm has a supervisory obligation. InfluWatch structures that obligation from day one.',
+  },
+  {
+    type: 'navigate',
+    screen: 'register',
+    title: 'Step 1 — Register the promoter.',
+    narrative: 'Name, platform, contact information. The promoter enters the supervisory program the moment they are registered — not after something goes wrong.',
+  },
+  {
+    type: 'navigate',
+    screen: 'compensation-config',
+    title: 'Step 2 — Classify the compensation.',
+    narrative: 'This is the most important step. Per-conversion, flat-fee, revenue share, or uncompensated. The compensation structure determines everything — posture, routing, required supervision level, disclosure requirements.',
+  },
+  {
+    type: 'navigate',
+    screen: 'promoters',
+    title: 'Step 3 — Promoter is live in the supervisory program.',
+    narrative: 'From this point forward, every post they publish is captured, classified, and routed to the right supervisor automatically. No manual monitoring required.',
+  },
+  {
+    type: 'promoter-detail',
+    ambassadorId: 'AMB-DEMO-01',
+    title: 'Step 4 — Connect their social accounts.',
+    narrative: 'One click opens Phyllo Connect. The promoter authenticates with Instagram, YouTube, or TikTok. From that moment, InfluWatch monitors their accounts automatically — capturing every post, transcribing every video, running detection on everything.',
+  },
+  {
+    type: 'card',
+    title: 'Onboarded. Monitored. Defensible.',
+    narrative: 'From registration to automated supervision in under 10 minutes. Every post captured. Every compensation relationship classified. Every supervisory decision documented. This is what a functioning supervisory program looks like.',
+  },
+];
+
 let _gdStep = 0;
 let _gdActive = false;
 let _gdSteps = GUIDED_STEPS;
 
 function startGuidedDemo(scenario) {
-  _gdSteps = scenario === 'scenario2' ? GUIDED_STEPS_2 : scenario === 'scenario3' ? GUIDED_STEPS_3 : GUIDED_STEPS;
+  _gdSteps = scenario === 'scenario2' ? GUIDED_STEPS_2
+           : scenario === 'scenario3' ? GUIDED_STEPS_3
+           : scenario === 'scenario4' ? GUIDED_STEPS_4
+           : GUIDED_STEPS;
   _gdStep = 0;
   _gdActive = true;
   document.getElementById('guided-demo-overlay').style.display = 'block';
@@ -8762,6 +8811,9 @@ function renderGuidedStep() {
     currentReviewRecordId = step.recordId;
     window._currentReviewRec = null;
     go('review');
+  } else if (step.type === 'promoter-detail') {
+    _currentAmbassadorId = step.ambassadorId;
+    go('promoter-detail');
   } else if (step.type === 'navigate') {
     if (step.preFilter) step.preFilter();
     go(step.screen);
