@@ -5467,6 +5467,13 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
 </div><!-- /screen-scenariolab -->
 
 <!-- GUIDED DEMO OVERLAY -->
+<!-- Guided demo full-screen card (intro / conclusion) -->
+<div id="gd-card-screen" style="display:none;align-items:center;justify-content:center;position:fixed;top:46px;left:200px;right:0;bottom:140px;background:var(--bg-base);z-index:8999;flex-direction:column;text-align:center;padding:40px">
+  <div style="font-size:8px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.18em;color:var(--cyan);margin-bottom:20px;background:rgba(6,182,212,0.1);padding:4px 12px;border:1px solid rgba(6,182,212,0.3)">GUIDED DEMO</div>
+  <div id="gd-card-title" style="font-size:26px;font-weight:700;color:#fff;max-width:600px;line-height:1.25;margin-bottom:16px"></div>
+  <div id="gd-card-detail" style="font-size:14px;color:var(--text-secondary);max-width:500px;line-height:1.7"></div>
+</div>
+
 <div id="guided-demo-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:9000;pointer-events:none">
   <!-- Narrative bar at bottom -->
   <div id="guided-demo-bar" style="position:fixed;bottom:0;left:0;right:0;background:rgba(9,9,15,0.98);border-top:2px solid var(--cyan);padding:14px 24px;pointer-events:auto;z-index:99999">
@@ -8596,6 +8603,7 @@ function startGuidedDemo() {
 function exitGuidedDemo() {
   _gdActive = false;
   document.getElementById('guided-demo-overlay').style.display = 'none';
+  document.getElementById('gd-card-screen').style.display = 'none';
   document.querySelector('.main').style.paddingBottom = '0';
   var wm = document.querySelector('.wm-banner');
   if (wm) wm.style.display = 'flex';
@@ -8629,13 +8637,19 @@ function renderGuidedStep() {
     '<div style="width:8px;height:8px;border-radius:50%;background:' + (i === _gdStep ? 'var(--cyan)' : 'var(--border)') + ';transition:background 0.2s"></div>'
   ).join('');
 
-  // Navigate to the record if this step has one
+  // Navigate to the record if this step has one, or show full-screen card
   if (step.type === 'record') {
+    document.getElementById('gd-card-screen').style.display = 'none';
     currentReviewRecordId = step.recordId;
     window._currentReviewRec = null;
     go('review');
-  } else if (step.type === 'card' && _gdStep === 0) {
-    go('scenariolab');
+  } else {
+    // Card steps — show a dedicated full-screen card, hide all other screens
+    document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+    var cardScreen = document.getElementById('gd-card-screen');
+    cardScreen.style.display = 'flex';
+    document.getElementById('gd-card-title').textContent = step.title;
+    document.getElementById('gd-card-detail').textContent = step.narrative;
   }
 }
 
