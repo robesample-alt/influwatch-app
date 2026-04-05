@@ -142,6 +142,9 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg-base);color:var(
 .btn-ghost{background:transparent;color:var(--text-secondary);border-color:transparent}
 .btn-ghost:hover{background:var(--bg-hover);color:var(--text-primary)}
 .btn-danger{background:var(--red-dim);color:var(--red);border-color:var(--red-bdr)}
+.btn-amber-outline{background:transparent;color:var(--amber);border-color:var(--amber)}
+.btn-amber-outline:hover{background:var(--amber-dim)}
+.btn-amber-outline:disabled{opacity:0.5;cursor:wait}
 .btn-sm{padding:4px 9px;font-size:10.5px}
 .btn-submit{width:100%;padding:11px;background:var(--amber);color:#000;font-family:'IBM Plex Sans Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;border:none;cursor:pointer;transition:all 0.1s;border-radius:3px}
 .btn-submit:hover{background:#b45309}
@@ -851,6 +854,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     </div>
     <div class="ph-actions">
       <span id="rev-queue-pos" style="font-size:10px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace"></span>
+      <button class="btn btn-amber-outline btn-sm" onclick="generateEvidencePackageForCurrentReview()">📄 Generate Evidence Package</button>
       <button class="btn btn-ghost btn-sm" onclick="go('queue')">&#8592; Queue</button>
       <button class="btn btn-secondary btn-sm" onclick="reviewNextRecord()">Next &#8594;</button>
     </div>
@@ -1198,6 +1202,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <div id="promoter-detail-sub" class="ph-sub">PR-004 · Critical Risk · 1 monitored account · 9 total flags · Cert expired</div>
     </div>
     <div class="ph-actions">
+      <button class="btn btn-amber-outline" onclick="openEvidencePackageDialog()">📄 Generate Evidence Package</button>
       <button class="btn btn-secondary" onclick="go('queue')">🔍 Review Flags</button>
       <button class="btn btn-danger">⊘ Suspend</button>
     </div>
@@ -9716,6 +9721,160 @@ async function openPhylloConnect() {
     btn.textContent = '+ Connect Social Account';
     alert('Failed to open social connect: ' + err.message);
   }
+}
+
+// ────────────────────────────────────────────────────────────────
+// EVIDENCE PACKAGE — Generate PDF for a promoter over a date range
+// ────────────────────────────────────────────────────────────────
+
+const EVIDENCE_EXPORT_URL = 'https://influwatch-backend.onrender.com/api/influwatch/exports/generate';
+
+function _ymd(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+
+/**
+ * Promoter Detail — opens a modal with date-range pickers (default: last 90 days).
+ * Uses _currentAmbassadorId set by loadPromoterDetail().
+ */
+function openEvidencePackageDialog() {
+  if (!_currentAmbassadorId) { alert('No promoter loaded.'); return; }
+  const existing = document.getElementById('evidence-pkg-dialog');
+  if (existing) existing.remove();
+
+  const today = new Date();
+  const ninetyAgo = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+  const promoterName = document.getElementById('promoter-detail-title')?.textContent || _currentAmbassadorId;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'evidence-pkg-dialog';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `
+    <div style="background:var(--bg-panel);border:1px solid var(--amber);border-radius:6px;width:420px;padding:22px;font-family:'IBM Plex Sans',sans-serif">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:6px">
+        <div style="color:var(--amber);font-size:15px">📄</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text-primary)">Generate Evidence Package</div>
+      </div>
+      <div style="font-size:10.5px;color:var(--text-muted);margin-bottom:18px;font-family:'IBM Plex Mono',monospace;letter-spacing:0.04em">${esc(promoterName)} · ${esc(_currentAmbassadorId)}</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px">
+        <div>
+          <div class="m-lbl" style="margin-bottom:5px">Date From</div>
+          <input type="date" id="evidence-date-from" value="${_ymd(ninetyAgo)}" class="fi" style="width:100%">
+        </div>
+        <div>
+          <div class="m-lbl" style="margin-bottom:5px">Date To</div>
+          <input type="date" id="evidence-date-to" value="${_ymd(today)}" class="fi" style="width:100%">
+        </div>
+      </div>
+
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:16px;line-height:1.5;padding:9px 11px;background:var(--bg-base);border:1px solid var(--border);border-radius:3px">
+        Builds a FINRA-examination-ready PDF containing all content records, detection hits, event log, and supervisory attestations for the selected period. Default window is the last 90 days.
+      </div>
+
+      <div id="evidence-pkg-status" style="font-size:10.5px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;margin-bottom:12px;min-height:14px"></div>
+
+      <div style="display:flex;gap:9px;justify-content:flex-end">
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('evidence-pkg-dialog').remove()">Cancel</button>
+        <button id="evidence-pkg-submit" class="btn btn-amber-outline btn-sm" onclick="submitEvidencePackageDialog()">Generate PDF</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function submitEvidencePackageDialog() {
+  const fromEl = document.getElementById('evidence-date-from');
+  const toEl   = document.getElementById('evidence-date-to');
+  const btn    = document.getElementById('evidence-pkg-submit');
+  const status = document.getElementById('evidence-pkg-status');
+  if (!fromEl || !toEl || !btn) return;
+  const from = fromEl.value;
+  const to   = toEl.value;
+  if (!from || !to) { status.textContent = '⚠ Both dates required.'; status.style.color = 'var(--red)'; return; }
+  if (new Date(from) > new Date(to)) { status.textContent = '⚠ Date From must be before Date To.'; status.style.color = 'var(--red)'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+  status.style.color = 'var(--text-muted)';
+  status.textContent = 'Building package…';
+
+  try {
+    await _downloadEvidencePdf(_currentAmbassadorId, from, to);
+    status.style.color = 'var(--amber)';
+    status.textContent = '✓ PDF downloaded.';
+    setTimeout(() => { const d = document.getElementById('evidence-pkg-dialog'); if (d) d.remove(); }, 900);
+  } catch (err) {
+    console.error('Evidence package error:', err);
+    status.style.color = 'var(--red)';
+    status.textContent = '⚠ ' + (err.message || 'Generation failed.');
+    btn.disabled = false;
+    btn.textContent = 'Generate PDF';
+  }
+}
+
+/**
+ * Flag Review — one-click, last 90 days, uses the ambassadorId
+ * from the currently loaded review record (window._currentReviewRec).
+ */
+async function generateEvidencePackageForCurrentReview() {
+  const rec = window._currentReviewRec;
+  const ambassadorId = rec?.ambassadorId || rec?.ambassador?.id;
+  if (!ambassadorId) { alert('No promoter associated with this flag.'); return; }
+
+  const today = new Date();
+  const ninetyAgo = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+  const btn = event?.target?.closest('button');
+  const prevLbl = btn ? btn.textContent : null;
+  if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
+
+  try {
+    await _downloadEvidencePdf(ambassadorId, _ymd(ninetyAgo), _ymd(today));
+    if (btn) { btn.textContent = '✓ Downloaded'; setTimeout(() => { btn.disabled = false; btn.textContent = prevLbl; }, 1800); }
+  } catch (err) {
+    console.error('Evidence package error:', err);
+    alert('Failed to generate evidence package: ' + (err.message || err));
+    if (btn) { btn.disabled = false; btn.textContent = prevLbl; }
+  }
+}
+
+/**
+ * Core helper — POSTs to /exports/generate, receives a PDF blob, triggers browser download.
+ */
+async function _downloadEvidencePdf(ambassadorId, dateFrom, dateTo) {
+  const res = await fetch(EVIDENCE_EXPORT_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(authToken ? { 'Authorization': 'Bearer ' + authToken } : {}),
+    },
+    body: JSON.stringify({ ambassadorId, dateFrom, dateTo }),
+  });
+  if (!res.ok) {
+    let detail = 'HTTP ' + res.status;
+    try { const j = await res.json(); if (j.error) detail = j.error; } catch {}
+    throw new Error(detail);
+  }
+
+  const blob = await res.blob();
+  // Prefer the filename from Content-Disposition if present
+  let filename = 'InfluWatch_Evidence_' + ambassadorId + '_' + dateFrom + '_to_' + dateTo + '.pdf';
+  const cd = res.headers.get('Content-Disposition');
+  if (cd) {
+    const m = cd.match(/filename="?([^"]+)"?/i);
+    if (m) filename = m[1];
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 </script>
 
