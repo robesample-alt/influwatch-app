@@ -5450,7 +5450,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <!-- ═══════════════════════════════════════════════════════ -->
     <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:20px">
       <div style="font-size:9px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.14em;color:var(--cyan);margin-bottom:10px">GUIDED DEMO</div>
-      <div onclick="startGuidedDemo()" style="padding:18px 20px;border:1px solid rgba(6,182,212,0.3);background:rgba(6,182,212,0.05);cursor:pointer;border-radius:2px;transition:all 0.12s" onmouseenter="this.style.borderColor='var(--cyan)';this.style.background='rgba(6,182,212,0.1)'" onmouseleave="this.style.borderColor='rgba(6,182,212,0.3)';this.style.background='rgba(6,182,212,0.05)'">
+      <div onclick="startGuidedDemo('scenario1')" style="padding:18px 20px;border:1px solid rgba(6,182,212,0.3);background:rgba(6,182,212,0.05);cursor:pointer;border-radius:2px;transition:all 0.12s" onmouseenter="this.style.borderColor='var(--cyan)';this.style.background='rgba(6,182,212,0.1)'" onmouseleave="this.style.borderColor='rgba(6,182,212,0.3)';this.style.background='rgba(6,182,212,0.05)'">
         <div style="font-weight:700;font-size:15px;margin-bottom:4px">Same Post, Four Outcomes</div>
         <div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px">See how the same social media post triggers four completely different supervisory outcomes — because compensation changes everything.</div>
         <div style="display:flex;align-items:center;gap:8px">
@@ -5458,6 +5458,15 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
           <span class="sev sev-high" style="font-size:8px"><span class="sev-dot"></span>HIGH</span>
           <span class="sev sev-medium" style="font-size:8px"><span class="sev-dot"></span>MEDIUM</span>
           <span class="sev sev-low" style="font-size:8px"><span class="sev-dot"></span>LOW</span>
+          <span style="font-size:9.5px;color:var(--cyan);font-family:'IBM Plex Mono',monospace;margin-left:auto">Start Demo →</span>
+        </div>
+      </div>
+
+      <div onclick="startGuidedDemo('scenario2')" style="padding:18px 20px;border:1px solid rgba(6,182,212,0.3);background:rgba(6,182,212,0.05);cursor:pointer;border-radius:2px;transition:all 0.12s;margin-top:12px" onmouseenter="this.style.borderColor='var(--cyan)';this.style.background='rgba(6,182,212,0.1)'" onmouseleave="this.style.borderColor='rgba(6,182,212,0.3)';this.style.background='rgba(6,182,212,0.05)'">
+        <div style="font-weight:700;font-size:15px;margin-bottom:4px">The FINRA Examination</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px">A FINRA examiner asks to see all supervisory activity on one promoter. Watch the system produce a complete examination response in under 3 minutes.</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:9px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted)">Marcus Venn · AMB-DEMO-01 · Q1 2026</span>
           <span style="font-size:9.5px;color:var(--cyan);font-family:'IBM Plex Mono',monospace;margin-left:auto">Start Demo →</span>
         </div>
       </div>
@@ -8587,10 +8596,54 @@ const GUIDED_STEPS = [
   },
 ];
 
+const GUIDED_STEPS_2 = [
+  {
+    type: 'card',
+    title: 'FINRA is in the building. Can you demonstrate your supervisory system?',
+    narrative: 'This is the question every CCO dreads. InfluWatch is built to answer it — not after the fact, but in real time.',
+  },
+  {
+    type: 'navigate',
+    screen: 'queue',
+    preFilter: function() {
+      var el = document.getElementById('queue-filter-promoter');
+      if (el) { el.value = 'AMB-DEMO-01'; }
+      queuePage = 1;
+    },
+    title: 'Every post Marcus published. Every one reviewed.',
+    narrative: 'Filter by promoter in seconds. Every captured communication, every supervisory action, every outcome — on one screen.',
+  },
+  {
+    type: 'record',
+    recordId: 'CR-DEMO-01',
+    title: 'The examiner wants to see a specific flag. Here it is.',
+    narrative: 'CRITICAL severity. Auto-escalated. Principal review documented with rationale. Timestamp, hash, and attribution all present.',
+  },
+  {
+    type: 'navigate',
+    screen: 'audit',
+    title: 'Every action. Every actor. Every timestamp.',
+    narrative: 'The audit log is append-only and cryptographically hashed. Nothing can be altered after the fact. This is what examination-ready looks like.',
+  },
+  {
+    type: 'navigate',
+    screen: 'export',
+    title: 'Package it for the examiner.',
+    narrative: 'Every supervisory decision, every attestation, every detection result — compiled into an evidence package. Structured, signed, and ready to hand over.',
+  },
+  {
+    type: 'card',
+    title: 'You just answered the examiner\'s question in under 3 minutes.',
+    narrative: 'InfluWatch doesn\'t prepare you for FINRA examinations. It runs one every day.',
+  },
+];
+
 let _gdStep = 0;
 let _gdActive = false;
+let _gdSteps = GUIDED_STEPS;
 
-function startGuidedDemo() {
+function startGuidedDemo(scenario) {
+  _gdSteps = scenario === 'scenario2' ? GUIDED_STEPS_2 : GUIDED_STEPS;
   _gdStep = 0;
   _gdActive = true;
   document.getElementById('guided-demo-overlay').style.display = 'block';
@@ -8611,19 +8664,19 @@ function exitGuidedDemo() {
 }
 
 function guidedDemoStep(dir) {
-  _gdStep = Math.max(0, Math.min(GUIDED_STEPS.length - 1, _gdStep + dir));
+  _gdStep = Math.max(0, Math.min(_gdSteps.length - 1, _gdStep + dir));
   renderGuidedStep();
 }
 
 function renderGuidedStep() {
-  const step = GUIDED_STEPS[_gdStep];
-  document.getElementById('gd-step-label').textContent = 'Step ' + (_gdStep + 1) + ' of ' + GUIDED_STEPS.length;
+  const step = _gdSteps[_gdStep];
+  document.getElementById('gd-step-label').textContent = 'Step ' + (_gdStep + 1) + ' of ' + _gdSteps.length;
   document.getElementById('gd-title').textContent = step.title;
   document.getElementById('gd-narrative').textContent = step.narrative;
   document.getElementById('gd-prev').disabled = _gdStep === 0;
 
   const nextBtn = document.getElementById('gd-next');
-  if (_gdStep === GUIDED_STEPS.length - 1) {
+  if (_gdStep === _gdSteps.length - 1) {
     nextBtn.textContent = 'Finish';
     nextBtn.onclick = exitGuidedDemo;
   } else {
@@ -8633,18 +8686,22 @@ function renderGuidedStep() {
 
   // Dots
   const dotsEl = document.getElementById('gd-dots');
-  dotsEl.innerHTML = GUIDED_STEPS.map((_, i) =>
+  dotsEl.innerHTML = _gdSteps.map((_, i) =>
     '<div style="width:8px;height:8px;border-radius:50%;background:' + (i === _gdStep ? 'var(--cyan)' : 'var(--border)') + ';transition:background 0.2s"></div>'
   ).join('');
 
-  // Navigate to the record if this step has one, or show full-screen card
+  // Hide card screen by default
+  document.getElementById('gd-card-screen').style.display = 'none';
+
   if (step.type === 'record') {
-    document.getElementById('gd-card-screen').style.display = 'none';
     currentReviewRecordId = step.recordId;
     window._currentReviewRec = null;
     go('review');
+  } else if (step.type === 'navigate') {
+    if (step.preFilter) step.preFilter();
+    go(step.screen);
   } else {
-    // Card steps — show a dedicated full-screen card, hide all other screens
+    // Card steps — full-screen card
     document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
     var cardScreen = document.getElementById('gd-card-screen');
     cardScreen.style.display = 'flex';
