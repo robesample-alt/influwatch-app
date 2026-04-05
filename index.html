@@ -9208,7 +9208,9 @@ function _renderLiveEnrichment(record, comp) {
       'ELEVATED':      'This promoter earns a percentage of ongoing revenue from referred investors. Elevated persuasion incentive exists. Principal review is required — this content cannot be cleared by a reviewer alone.',
       'MEDIUM':        'This promoter was paid a flat fee regardless of investment volume. Standard supervisory review required. A missing compensation disclosure was detected — correction required before this content can be approved.',
       'STANDARD':      'This promoter was paid a flat fee regardless of investment volume. Standard supervisory review required. A missing compensation disclosure was detected — correction required before this content can be approved.',
-      'LOW':           'This promoter has no compensation agreement. Standard logging applies. Detection engine found no violations. Content is cleared — audit trail is complete.',
+      'LOW':           (comp && comp.compensationForm)
+        ? 'No violations detected. This content has been logged and is available for supervisory review. The compensation relationship is on file — review is recommended.'
+        : 'This promoter has no compensation agreement. Standard logging applies. Detection engine found no violations. Content is cleared — audit trail is complete.',
       'UNCOMPENSATED': 'This promoter has no compensation agreement. Standard logging applies. Detection engine found no violations. Content is cleared — audit trail is complete.',
     };
     regMeaning.textContent = meaningMap[postureKey] || 'Compensation posture could not be determined. Manual classification required before supervisory decision.';
@@ -9276,15 +9278,17 @@ function _renderLiveEnrichment(record, comp) {
     }
   }
   if (routingEl) {
+    // For LOW posture, differentiate compensated vs uncompensated by presence of comp structure
+    var isCompensatedLow = (postureKey === 'LOW') && comp && comp.compensationForm;
     var routingMap = {
-      'CRITICAL':  { text: 'PRINCIPAL ONLY — AUTO-ESCALATED',   bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.4)', color: 'var(--red)' },
-      'HEIGHTENED':{ text: 'PRINCIPAL ONLY — AUTO-ESCALATED',   bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.4)', color: 'var(--red)' },
-      'HIGH':      { text: 'PRINCIPAL REVIEW REQUIRED',          bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.4)', color: 'var(--orange)' },
-      'ELEVATED':  { text: 'PRINCIPAL REVIEW REQUIRED',          bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.4)', color: 'var(--orange)' },
-      'MEDIUM':    { text: 'REVIEWER ACTION REQUIRED',           bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.3)', color: 'var(--amber)' },
-      'STANDARD':  { text: 'REVIEWER ACTION REQUIRED',           bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.3)', color: 'var(--amber)' },
-      'LOW':       { text: 'AUTO-CLEARED — LOGGED FOR AUDIT',    bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.3)', color: 'var(--green)' },
-      'UNCOMPENSATED':{ text: 'AUTO-CLEARED — LOGGED FOR AUDIT', bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.3)', color: 'var(--green)' },
+      'CRITICAL':   { text: 'PRINCIPAL ONLY — AUTO-ESCALATED',    bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.4)',  color: 'var(--red)' },
+      'HEIGHTENED': { text: 'PRINCIPAL ONLY — AUTO-ESCALATED',    bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.4)',  color: 'var(--red)' },
+      'HIGH':       { text: 'PRINCIPAL REVIEW REQUIRED',          bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.4)', color: 'var(--orange)' },
+      'ELEVATED':   { text: 'PRINCIPAL REVIEW REQUIRED',          bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.4)', color: 'var(--orange)' },
+      'MEDIUM':     { text: 'REVIEWER ACTION REQUIRED',           bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)', color: 'var(--amber)' },
+      'STANDARD':   { text: 'REVIEWER ACTION REQUIRED',           bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)', color: 'var(--amber)' },
+      'LOW':        { text: isCompensatedLow ? 'LOGGED — AVAILABLE FOR REVIEW' : 'AUTO-CLEARED — LOGGED FOR AUDIT', bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.3)', color: 'var(--green)' },
+      'UNCOMPENSATED':{ text: 'AUTO-CLEARED — LOGGED FOR AUDIT',  bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.3)', color: 'var(--green)' },
     };
     var route = routingMap[postureKey] || { text: 'REVIEW REQUIRED', bg: 'var(--bg-panel)', border: 'var(--border)', color: 'var(--text-muted)' };
     routingEl.textContent = route.text;
