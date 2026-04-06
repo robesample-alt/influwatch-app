@@ -2600,6 +2600,13 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <div class="metric m-blue"><div class="m-lbl">Promoters Supervised</div><div class="m-val">5</div><div class="m-sub">Directly assigned</div></div>
     <div class="metric m-purple"><div class="m-lbl">Program Cert Due</div><div class="m-val" style="font-size:16px;color:var(--purple)">Aug 2026</div><div class="m-sub warn">FINRA Rule 3110</div></div>
   </div>
+  <div id="principal-live-body">
+    <div style="padding:40px;text-align:center;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:11px">LOADING DESK OVERSIGHT&#8230;</div>
+  </div>
+</div>
+
+<!-- The static content below is replaced by loadPrincipal() — kept as hidden fallback -->
+<div style="display:none">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)">
     <div style="background:var(--bg-base);padding:18px">
       <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);margin-bottom:12px">Principal Identity &amp; License Authority</div>
@@ -7651,24 +7658,95 @@ async function loadUsers() {
 
 // ── Principal Dashboard — API fetch ────────────────────────────────────
 async function loadPrincipal() {
+  const hdrs = authToken ? { 'Authorization': 'Bearer ' + authToken } : {};
+  const container = document.getElementById('principal-live-body');
+  if (!container) return;
+  container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace;font-size:11px">LOADING DESK OVERSIGHT\u2026</div>';
+
   try {
-    const [ambRes, certRes] = await Promise.all([
-      fetch('https://influwatch-backend.onrender.com/api/influwatch/ambassadors', {
-        headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {},
-      }),
-      fetch('https://influwatch-backend.onrender.com/api/influwatch/certifications', {
-        headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {},
-      }),
-    ]);
-    if (ambRes.ok) {
-      const ambassadors = await ambRes.json();
-      const tiles = document.querySelectorAll('#screen-principal .metrics .m-val');
-      // 4th tile = Promoters Supervised (index 3)
-      if (tiles[3]) tiles[3].textContent = ambassadors.length;
+    const res = await fetch('https://influwatch-backend.onrender.com/api/influwatch/debug/principal-dashboard', { headers: hdrs });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const p = data.principal || {};
+    const f = data.firm || {};
+    const m = data.metrics || {};
+    const promoters = data.promoters || [];
+    const queue = data.queue || [];
+    const initials = (p.displayName || '??').split(' ').map(function(w) { return w[0]; }).join('').slice(0,2).toUpperCase();
+
+    // Metrics
+    var metricsEl = document.querySelector('#screen-principal .metrics');
+    if (metricsEl) {
+      var tiles = metricsEl.querySelectorAll('.m-val');
+      if (tiles[0]) tiles[0].textContent = queue.length;
+      if (tiles[1]) { var sub0 = metricsEl.querySelectorAll('.m-sub'); if (sub0[0]) sub0[0].textContent = 'Awaiting principal action'; }
+      if (tiles[2]) tiles[2].textContent = m.escalationsOpen || 0;
+      if (tiles[3]) tiles[3].textContent = m.promotersSupervised || 0;
     }
-    // certifications count available for future metric tile
+    // Update first tile label
+    var lbl0 = metricsEl?.querySelector('.m-lbl');
+    if (lbl0) lbl0.textContent = 'Principal Queue';
+
+    // Build the two-column body
+    var scopeHtml = (p.supervisoryScope || '').split(';').map(function(s) {
+      return s.trim() ? '\u2713 ' + esc(s.trim()) + '<br>' : '';
+    }).join('');
+
+    var promoterRows = promoters.map(function(pr) {
+      var platMap = { YOUTUBE: 'plat-yt', INSTAGRAM: 'plat-ig', TWITTER_X: 'plat-tw', TIKTOK: 'plat-tt', LINKEDIN: 'plat-li' };
+      var platIcon = { YOUTUBE: '\u25B6', INSTAGRAM: 'IG', TWITTER_X: '\uD835\uDD4F', TIKTOK: 'TT', LINKEDIN: 'in' };
+      var cls = platMap[pr.primaryPlatform] || '';
+      var ic  = platIcon[pr.primaryPlatform] || '\u25C6';
+      var riskColor = pr.riskTier === 'CRITICAL' ? 'var(--red)' : pr.riskTier === 'HIGH' ? 'var(--orange)' : pr.riskTier === 'MEDIUM' ? 'var(--amber)' : 'var(--green)';
+      return '<div style="background:var(--bg-surface);border:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="selectAndViewPromoter(\'' + esc(pr.id) + '\')">' +
+        '<div class="plat-icon ' + cls + '" style="color:white;font-size:11px;width:24px;height:24px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-weight:700">' + ic + '</div>' +
+        '<div style="flex:1"><div style="font-size:12px;font-weight:600">' + esc(pr.displayName) + '</div><div style="font-size:10px;color:var(--text-muted)">' + esc(pr.handle || '') + ' \u00B7 Risk: <span style="color:' + riskColor + '">' + esc(pr.riskTier || '\u2014') + '</span></div></div>' +
+        '<div style="text-align:right"><div style="font-size:10px;font-family:\'IBM Plex Mono\',monospace;color:' + (pr.openRecordCount > 0 ? 'var(--red)' : 'var(--green)') + '">' + pr.openRecordCount + ' open</div></div></div>';
+    }).join('');
+
+    var queueRows = queue.length ? queue.map(function(r) {
+      var sevCls = r.severity === 'CRITICAL' ? 'sev-critical' : r.severity === 'HIGH' ? 'sev-high' : r.severity === 'MEDIUM' ? 'sev-medium' : 'sev-low';
+      var expColor = fmtExpColor(r.exposureLevel);
+      var dt = r.capturedAt ? new Date(r.capturedAt).toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hour12:false }) : '\u2014';
+      var why = whyRoutedHere(r);
+      return '<tr style="cursor:pointer" onclick="currentReviewRecordId=\'' + esc(r.id) + '\';window._currentReviewRec=null;go(\'review\')">' +
+        '<td style="font-weight:600">' + esc(r.promoterName) + '<div style="font-size:9px;color:var(--text-muted)">' + esc(r.platform || '') + '</div></td>' +
+        '<td><span class="sev ' + sevCls + '"><span class="sev-dot"></span>' + esc(r.severity || '\u2014') + '</span></td>' +
+        '<td style="font-size:10px"><span style="color:' + expColor + ';font-weight:600">' + esc(fmtExposure(r.exposureLevel)) + '</span></td>' +
+        '<td style="font-size:10px;color:var(--text-secondary);max-width:280px">' + esc(why) + '</td>' +
+        '<td class="mono" style="font-size:10px">' + esc(dt) + '</td>' +
+        '<td><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();currentReviewRecordId=\'' + esc(r.id) + '\';window._currentReviewRec=null;go(\'review\')">Review \u2192</button></td></tr>';
+    }).join('') : '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--green);font-family:\'IBM Plex Mono\',monospace;font-size:11px">\u2713 No records requiring principal review. Queue is clear.</td></tr>';
+
+    container.innerHTML =
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)">' +
+        '<div style="background:var(--bg-base);padding:18px">' +
+          '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;font-family:\'IBM Plex Mono\',monospace;color:var(--text-muted);margin-bottom:12px">Principal Identity &amp; License Authority</div>' +
+          '<div style="background:var(--bg-surface);border:1px solid var(--amber-bdr);padding:16px">' +
+            '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">' +
+              '<div style="width:44px;height:44px;border-radius:50%;background:var(--amber);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#000">' + esc(initials) + '</div>' +
+              '<div style="flex:1"><div style="font-size:15px;font-weight:700">' + esc(p.displayName || '\u2014') + '</div><div style="font-size:10.5px;color:var(--text-muted)">' + esc(p.role ? fmtLabel(p.role) : '') + ' \u00B7 ' + esc(f.firmName || '') + '</div></div>' +
+              '<span class="stat ' + (p.licenseStatus === 'ACTIVE' ? 'stat-active' : 'stat-escalated') + '">' + esc(p.licenseStatus || '\u2014') + '</span>' +
+            '</div>' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">' +
+              '<div style="background:var(--bg-panel);padding:8px 10px"><div style="font-size:8.5px;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px">FINRA CRD</div><div class="mono">#' + esc(p.crdNumber || '\u2014') + '</div></div>' +
+              '<div style="background:var(--bg-panel);padding:8px 10px"><div style="font-size:8.5px;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px">Firm CRD</div><div class="mono">' + esc(f.crdNumber || '\u2014') + '</div></div>' +
+              '<div style="background:var(--amber-dim);border:1px solid var(--amber-bdr);padding:8px 10px"><div style="font-size:8.5px;color:var(--amber);font-family:\'IBM Plex Mono\',monospace;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px">' + esc(p.seriesLicense || 'License') + ' \u2014 ' + esc(p.licenseStatus || '\u2014') + '</div><div style="font-size:11px">General Securities Principal</div>' + (p.licenseExpiryDate ? '<div style="font-size:9px;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace;margin-top:2px">Expires: ' + new Date(p.licenseExpiryDate).toLocaleDateString() + '</div>' : '') + '</div>' +
+              '<div style="background:var(--bg-panel);padding:8px 10px"><div style="font-size:8.5px;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px">Email</div><div style="font-size:11px">' + esc(p.email || '\u2014') + '</div></div>' +
+            '</div>' +
+            (scopeHtml ? '<div style="padding:10px;background:var(--bg-panel);border:1px solid var(--border);font-size:11px;color:var(--text-secondary);line-height:1.8"><div style="font-size:9px;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">Supervisory Scope</div>' + scopeHtml + '</div>' : '') +
+          '</div>' +
+        '</div>' +
+        '<div style="background:var(--bg-base);padding:18px">' +
+          '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;font-family:\'IBM Plex Mono\',monospace;color:var(--text-muted);margin-bottom:12px">Supervised Promoters (' + promoters.length + ')</div>' +
+          '<div style="display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto">' + (promoterRows || '<div style="color:var(--text-muted);font-size:11px;padding:12px">No promoters assigned.</div>') + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="padding:12px 16px 5px;font-size:9.5px;font-family:\'IBM Plex Mono\',monospace;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.12em;border-top:1px solid var(--border)">Principal Queue \u2014 Records Requiring Your Review (' + queue.length + ')</div>' +
+      '<table><thead><tr><th>Promoter</th><th>Severity</th><th>Exposure</th><th>Why Routed Here</th><th>Captured</th><th>Action</th></tr></thead><tbody>' + queueRows + '</tbody></table>';
+
   } catch (err) {
-    // Principal dashboard stays static on error — non-blocking
+    container.innerHTML = '<div style="padding:20px;color:var(--red);font-family:\'IBM Plex Mono\',monospace;font-size:11px">\u26A0 Failed to load dashboard: ' + esc(err.message) + '</div>';
   }
 }
 
