@@ -794,6 +794,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <div class="ph-actions">
       <select id="queue-filter-severity" class="fi" style="width:130px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Severity</option><option value="CRITICAL">Critical</option><option value="HIGH">High</option><option value="MEDIUM">Medium</option><option value="LOW">Low</option></select>
       <select id="queue-filter-status" class="fi" style="width:130px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Status</option><option value="CAPTURED">Captured</option><option value="PENDING_REVIEW">Pending Review</option><option value="ESCALATED">Escalated</option></select>
+      <select id="queue-filter-principal" class="fi" style="width:150px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Routing</option><option value="true">Principal Required</option><option value="false">Non-Principal</option></select>
       <select id="queue-filter-promoter" class="fi" style="width:150px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Promoters</option></select>
       <select id="queue-filter-platform" class="fi" style="width:130px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Platforms</option><option value="YOUTUBE">YouTube</option><option value="INSTAGRAM">Instagram</option><option value="TIKTOK">TikTok</option><option value="TWITTER_X">Twitter/X</option><option value="FACEBOOK">Facebook</option><option value="LINKEDIN">LinkedIn</option></select>
       <input id="queue-filter-from" type="date" class="fi" style="width:120px;font-size:10px" onchange="queuePage=1;loadReviewQueue()" title="From date">
@@ -6129,16 +6130,18 @@ async function loadReviewQueue() {
   try {
     // Build query params from filter controls
     await loadPromoterDropdowns();
-    const statusFilter   = document.getElementById('queue-filter-status')?.value || '';
-    const severityFilter = document.getElementById('queue-filter-severity')?.value || '';
-    const promoterFilter = document.getElementById('queue-filter-promoter')?.value || '';
-    const platformFilter = document.getElementById('queue-filter-platform')?.value || '';
+    const statusFilter    = document.getElementById('queue-filter-status')?.value || '';
+    const severityFilter  = document.getElementById('queue-filter-severity')?.value || '';
+    const promoterFilter  = document.getElementById('queue-filter-promoter')?.value || '';
+    const platformFilter  = document.getElementById('queue-filter-platform')?.value || '';
+    const principalFilter = document.getElementById('queue-filter-principal')?.value || '';
     if (queuePage < 1) queuePage = 1;
     let url = CONTENT_RECORDS_URL + '?page=' + queuePage + '&pageSize=' + QUEUE_PAGE_SIZE;
-    if (statusFilter)   url += '&archiveStatus=' + encodeURIComponent(statusFilter);
-    if (promoterFilter) url += '&ambassadorId=' + encodeURIComponent(promoterFilter);
-    if (platformFilter) url += '&sourcePlatform=' + encodeURIComponent(platformFilter);
-    if (severityFilter) url += '&severity=' + encodeURIComponent(severityFilter);
+    if (statusFilter)    url += '&archiveStatus=' + encodeURIComponent(statusFilter);
+    if (promoterFilter)  url += '&ambassadorId=' + encodeURIComponent(promoterFilter);
+    if (platformFilter)  url += '&sourcePlatform=' + encodeURIComponent(platformFilter);
+    if (severityFilter)  url += '&severity=' + encodeURIComponent(severityFilter);
+    if (principalFilter) url += '&requiresPrincipalReview=' + encodeURIComponent(principalFilter);
     const fromDate = document.getElementById('queue-filter-from')?.value || '';
     const toDate   = document.getElementById('queue-filter-to')?.value || '';
     if (fromDate) url += '&capturedFrom=' + encodeURIComponent(fromDate);
@@ -9351,19 +9354,33 @@ function _renderLiveEnrichment(record, comp) {
     }
   }
   if (routingEl) {
-    // For LOW posture, differentiate compensated vs uncompensated by presence of comp structure
-    var isCompensatedLow = (postureKey === 'LOW') && comp && comp.compensationForm;
-    var routingMap = {
-      'CRITICAL':   { text: 'PRINCIPAL ONLY — AUTO-ESCALATED',    bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.4)',  color: 'var(--red)' },
-      'HEIGHTENED': { text: 'PRINCIPAL ONLY — AUTO-ESCALATED',    bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.4)',  color: 'var(--red)' },
-      'HIGH':       { text: 'PRINCIPAL REVIEW REQUIRED',          bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.4)', color: 'var(--orange)' },
-      'ELEVATED':   { text: 'PRINCIPAL REVIEW REQUIRED',          bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.4)', color: 'var(--orange)' },
-      'MEDIUM':     { text: 'REVIEWER ACTION REQUIRED',           bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)', color: 'var(--amber)' },
-      'STANDARD':   { text: 'REVIEWER ACTION REQUIRED',           bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)', color: 'var(--amber)' },
-      'LOW':        { text: isCompensatedLow ? 'LOGGED — AVAILABLE FOR REVIEW' : 'AUTO-CLEARED — LOGGED FOR AUDIT', bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.3)', color: 'var(--green)' },
-      'UNCOMPENSATED':{ text: 'AUTO-CLEARED — LOGGED FOR AUDIT',  bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.3)', color: 'var(--green)' },
-    };
-    var route = routingMap[postureKey] || { text: 'REVIEW REQUIRED', bg: 'var(--bg-panel)', border: 'var(--border)', color: 'var(--text-muted)' };
+    var route;
+    // Phase 3 — exposure-based principal routing for new records.
+    // Legacy fallback: records without exposure data use posture-based routing.
+    if (rec.exposureLevel) {
+      var exposureRoutingMap = {
+        'PRINCIPAL_REQUIRED':        { text: 'PRINCIPAL REVIEW REQUIRED — EXPOSURE',   bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.4)',  color: 'var(--red)' },
+        'PRINCIPAL_EXCEPTION':       { text: 'PRINCIPAL ATTENTION RECOMMENDED',         bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.4)', color: 'var(--orange)' },
+        'REVIEWER_PLUS_SUPERVISOR':  { text: 'SUPERVISOR REVIEW REQUIRED',              bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)', color: 'var(--amber)' },
+        'REVIEWER':                  { text: 'REVIEWER ACTION REQUIRED',                bg: 'rgba(59,130,246,0.1)',  border: 'rgba(59,130,246,0.3)', color: 'var(--blue)' },
+        'NONE':                      { text: 'LOGGED — NO ELEVATED EXPOSURE',           bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.3)', color: 'var(--green)' },
+      };
+      route = exposureRoutingMap[rec.exposureLevel] || { text: 'REVIEW REQUIRED', bg: 'var(--bg-panel)', border: 'var(--border)', color: 'var(--text-muted)' };
+    } else {
+      // Legacy fallback — posture-based routing for records without exposure data
+      var isCompensatedLow = (postureKey === 'LOW') && comp && comp.compensationForm;
+      var legacyRoutingMap = {
+        'CRITICAL':   { text: 'PRINCIPAL ONLY — AUTO-ESCALATED',    bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.4)',  color: 'var(--red)' },
+        'HEIGHTENED': { text: 'PRINCIPAL ONLY — AUTO-ESCALATED',    bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.4)',  color: 'var(--red)' },
+        'HIGH':       { text: 'PRINCIPAL REVIEW REQUIRED',          bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.4)', color: 'var(--orange)' },
+        'ELEVATED':   { text: 'PRINCIPAL REVIEW REQUIRED',          bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.4)', color: 'var(--orange)' },
+        'MEDIUM':     { text: 'REVIEWER ACTION REQUIRED',           bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)', color: 'var(--amber)' },
+        'STANDARD':   { text: 'REVIEWER ACTION REQUIRED',           bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)', color: 'var(--amber)' },
+        'LOW':        { text: isCompensatedLow ? 'LOGGED — AVAILABLE FOR REVIEW' : 'AUTO-CLEARED — LOGGED FOR AUDIT', bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.3)', color: 'var(--green)' },
+        'UNCOMPENSATED':{ text: 'AUTO-CLEARED — LOGGED FOR AUDIT',  bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.3)', color: 'var(--green)' },
+      };
+      route = legacyRoutingMap[postureKey] || { text: 'REVIEW REQUIRED', bg: 'var(--bg-panel)', border: 'var(--border)', color: 'var(--text-muted)' };
+    }
     routingEl.textContent = route.text;
     routingEl.style.background = route.bg;
     routingEl.style.border = '1px solid ' + route.border;
