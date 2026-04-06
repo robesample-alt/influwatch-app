@@ -791,17 +791,23 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <div class="ph-title">Review Queue</div>
       <div class="ph-sub" id="queue-subtitle">Loading review queue…</div>
     </div>
-    <div class="ph-actions">
-      <select id="queue-filter-severity" class="fi" style="width:130px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Severity</option><option value="CRITICAL">Critical</option><option value="HIGH">High</option><option value="MEDIUM">Medium</option><option value="LOW">Low</option></select>
-      <select id="queue-filter-status" class="fi" style="width:130px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Status</option><option value="CAPTURED">Captured</option><option value="PENDING_REVIEW">Pending Review</option><option value="ESCALATED">Escalated</option></select>
-      <select id="queue-filter-principal" class="fi" style="width:150px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Routing</option><option value="true">Principal Required</option><option value="false">Non-Principal</option></select>
-      <select id="queue-filter-exposure" class="fi" style="width:150px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Exposure</option><option value="PRINCIPAL_REQUIRED">Principal Required</option><option value="PRINCIPAL_EXCEPTION">Principal Attention</option><option value="REVIEWER_PLUS_SUPERVISOR">Supervisor Review</option><option value="REVIEWER">Reviewer</option><option value="NONE">No Exposure</option></select>
-      <select id="queue-filter-mismatch" class="fi" style="width:150px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Conformance</option><option value="true">Campaign Mismatch</option><option value="false">Conformant</option></select>
-      <select id="queue-filter-promoter" class="fi" style="width:150px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Promoters</option></select>
-      <select id="queue-filter-platform" class="fi" style="width:130px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Platforms</option><option value="YOUTUBE">YouTube</option><option value="INSTAGRAM">Instagram</option><option value="TIKTOK">TikTok</option><option value="TWITTER_X">Twitter/X</option><option value="FACEBOOK">Facebook</option><option value="LINKEDIN">LinkedIn</option></select>
-      <input id="queue-filter-from" type="date" class="fi" style="width:120px;font-size:10px" onchange="queuePage=1;loadReviewQueue()" title="From date">
-      <input id="queue-filter-to" type="date" class="fi" style="width:120px;font-size:10px" onchange="queuePage=1;loadReviewQueue()" title="To date">
+    <div class="ph-actions" style="flex-wrap:wrap;gap:6px">
+      <select id="queue-filter-severity" class="fi" style="width:110px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Severity</option><option value="CRITICAL">Critical</option><option value="HIGH">High</option><option value="MEDIUM">Medium</option><option value="LOW">Low</option></select>
+      <select id="queue-filter-status" class="fi" style="width:120px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Status</option><option value="CAPTURED">Captured</option><option value="PENDING_REVIEW">Pending Review</option><option value="ESCALATED">Escalated</option></select>
+      <select id="queue-filter-promoter" class="fi" style="width:130px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Promoters</option></select>
+      <select id="queue-filter-platform" class="fi" style="width:110px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Platforms</option><option value="YOUTUBE">YouTube</option><option value="INSTAGRAM">Instagram</option><option value="TIKTOK">TikTok</option><option value="TWITTER_X">Twitter/X</option><option value="FACEBOOK">Facebook</option><option value="LINKEDIN">LinkedIn</option></select>
+      <input id="queue-filter-from" type="date" class="fi" style="width:110px;font-size:10px" onchange="queuePage=1;loadReviewQueue()" title="From date">
+      <input id="queue-filter-to" type="date" class="fi" style="width:110px;font-size:10px" onchange="queuePage=1;loadReviewQueue()" title="To date">
     </div>
+  </div>
+  <!-- Exposure / routing filters — compact second row -->
+  <div style="display:flex;align-items:center;gap:6px;padding:4px 18px;background:var(--bg-surface);border-bottom:1px solid var(--border);flex-wrap:wrap">
+    <span style="font-size:8px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-right:4px">Exposure</span>
+    <select id="queue-filter-exposure" class="fi" style="width:140px;padding:3px 6px;font-size:10px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Levels</option><option value="PRINCIPAL_REQUIRED">Principal Required</option><option value="PRINCIPAL_EXCEPTION">Principal Attention</option><option value="REVIEWER_PLUS_SUPERVISOR">Supervisor Review</option><option value="REVIEWER">Reviewer</option><option value="NONE">No Exposure</option></select>
+    <select id="queue-filter-principal" class="fi" style="width:130px;padding:3px 6px;font-size:10px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Routing</option><option value="true">Principal Only</option><option value="false">Non-Principal</option></select>
+    <select id="queue-filter-mismatch" class="fi" style="width:140px;padding:3px 6px;font-size:10px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Conformance</option><option value="true">Campaign Mismatch</option><option value="false">Conformant</option></select>
+    <button class="btn btn-ghost btn-sm" style="font-size:9px;padding:2px 8px;margin-left:auto" onclick="resetQueueFilters()">Clear All Filters</button>
+    <span id="queue-active-filters" style="font-size:9px;font-family:'IBM Plex Mono',monospace;color:var(--amber);display:none"></span>
   </div>
   <div style="overflow-y:auto;height:calc(100vh - 46px - 60px)">
 
@@ -6144,7 +6150,36 @@ const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
 // Tracks the content record ID selected from the queue — used by submitDecision
 let currentReviewRecordId = null;
 
+function resetQueueFilters() {
+  ['queue-filter-severity','queue-filter-status','queue-filter-promoter','queue-filter-platform',
+   'queue-filter-exposure','queue-filter-principal','queue-filter-mismatch'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  var from = document.getElementById('queue-filter-from');
+  var to   = document.getElementById('queue-filter-to');
+  if (from) from.value = '';
+  if (to)   to.value   = '';
+  queuePage = 1;
+  loadReviewQueue();
+}
+function updateActiveFilterIndicator() {
+  var ids = ['queue-filter-severity','queue-filter-status','queue-filter-promoter','queue-filter-platform',
+             'queue-filter-exposure','queue-filter-principal','queue-filter-mismatch'];
+  var active = ids.filter(function(id) { var el = document.getElementById(id); return el && el.value; }).length;
+  var from = document.getElementById('queue-filter-from');
+  var to   = document.getElementById('queue-filter-to');
+  if (from && from.value) active++;
+  if (to && to.value) active++;
+  var el = document.getElementById('queue-active-filters');
+  if (el) {
+    if (active > 0) { el.style.display = 'inline'; el.textContent = active + ' filter' + (active > 1 ? 's' : '') + ' active'; }
+    else { el.style.display = 'none'; }
+  }
+}
+
 async function loadReviewQueue() {
+  updateActiveFilterIndicator();
   const elLoading  = document.getElementById('queue-loading');
   const elError    = document.getElementById('queue-error');
   const elErrMsg   = document.getElementById('queue-error-msg');
