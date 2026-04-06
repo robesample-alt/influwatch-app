@@ -795,6 +795,8 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <select id="queue-filter-severity" class="fi" style="width:130px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Severity</option><option value="CRITICAL">Critical</option><option value="HIGH">High</option><option value="MEDIUM">Medium</option><option value="LOW">Low</option></select>
       <select id="queue-filter-status" class="fi" style="width:130px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Status</option><option value="CAPTURED">Captured</option><option value="PENDING_REVIEW">Pending Review</option><option value="ESCALATED">Escalated</option></select>
       <select id="queue-filter-principal" class="fi" style="width:150px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Routing</option><option value="true">Principal Required</option><option value="false">Non-Principal</option></select>
+      <select id="queue-filter-exposure" class="fi" style="width:150px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Exposure</option><option value="PRINCIPAL_REQUIRED">Principal Required</option><option value="PRINCIPAL_EXCEPTION">Principal Attention</option><option value="REVIEWER_PLUS_SUPERVISOR">Supervisor Review</option><option value="REVIEWER">Reviewer</option><option value="NONE">No Exposure</option></select>
+      <select id="queue-filter-mismatch" class="fi" style="width:150px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Conformance</option><option value="true">Campaign Mismatch</option><option value="false">Conformant</option></select>
       <select id="queue-filter-promoter" class="fi" style="width:150px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Promoters</option></select>
       <select id="queue-filter-platform" class="fi" style="width:130px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Platforms</option><option value="YOUTUBE">YouTube</option><option value="INSTAGRAM">Instagram</option><option value="TIKTOK">TikTok</option><option value="TWITTER_X">Twitter/X</option><option value="FACEBOOK">Facebook</option><option value="LINKEDIN">LinkedIn</option></select>
       <input id="queue-filter-from" type="date" class="fi" style="width:120px;font-size:10px" onchange="queuePage=1;loadReviewQueue()" title="From date">
@@ -828,6 +830,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
         <th>Platform</th>
         <th>Campaign</th>
         <th>Severity</th>
+        <th>Exposure</th>
         <th>Status</th>
         <th>Captured At</th>
         <th>Action</th>
@@ -1060,9 +1063,10 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
 
         <!-- Phase 2.5 — Exposure Debug Card (log-only visibility) -->
         <div id="sup-exposure-debug" style="padding:10px 12px;border-bottom:1px solid var(--border);display:none">
-          <div style="font-size:8.5px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan);margin-bottom:7px;font-weight:600;display:flex;align-items:center;gap:6px">
-            <span style="font-size:9px">&#9881;</span> Exposure Analysis <span style="font-size:7.5px;font-weight:400;color:var(--text-muted);text-transform:none;letter-spacing:0">(log-only — not routing)</span>
+          <div style="font-size:8.5px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan);margin-bottom:4px;font-weight:600;display:flex;align-items:center;gap:6px">
+            <span style="font-size:9px">&#9881;</span> Exposure Analysis
           </div>
+          <div id="sup-exp-why-routed" style="font-size:10px;color:var(--text-secondary);line-height:1.5;margin-bottom:8px;padding:6px 8px;background:var(--bg-base);border:1px solid var(--border);border-radius:2px"></div>
           <div class="sup-trace-step"><span class="sup-trace-label">Exposure Level</span><span class="sup-trace-val" id="sup-exp-level" style="font-weight:600">&#8212;</span></div>
           <div class="sup-trace-step"><span class="sup-trace-label">Principal Review</span><span class="sup-trace-val" id="sup-exp-principal">&#8212;</span></div>
           <div class="sup-trace-step"><span class="sup-trace-label">Comp Type</span><span class="sup-trace-val" id="sup-exp-comp-type" style="font-size:9px">&#8212;</span></div>
@@ -5623,6 +5627,34 @@ function hasCategory(dets, category) {
   return (dets || []).some(function(d) { return getFindingCopy(d.ruleCode).category === category; });
 }
 
+// ── Phase 5 — Formatting helpers ──────────────────────────────────────
+function fmtLabel(s) {
+  if (!s) return '\u2014';
+  return s.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+}
+var EXP_LEVEL_LABELS = {
+  PRINCIPAL_REQUIRED: 'Principal Required', PRINCIPAL_EXCEPTION: 'Principal Attention',
+  REVIEWER_PLUS_SUPERVISOR: 'Supervisor Review', REVIEWER: 'Reviewer', NONE: 'No Exposure',
+};
+var EXP_LEVEL_COLORS = {
+  PRINCIPAL_REQUIRED: 'var(--red)', PRINCIPAL_EXCEPTION: 'var(--orange)',
+  REVIEWER_PLUS_SUPERVISOR: 'var(--amber)', REVIEWER: 'var(--blue)', NONE: 'var(--green)',
+};
+function fmtExposure(lvl) { return EXP_LEVEL_LABELS[lvl] || fmtLabel(lvl); }
+function fmtExpColor(lvl) { return EXP_LEVEL_COLORS[lvl] || ''; }
+function whyRoutedHere(rec) {
+  if (!rec.exposureLevel) return 'Legacy record \u2014 routing based on compensation posture.';
+  if (rec.compensationMismatchWithCampaign === true) return 'Principal required \u2014 campaign compensation drift detected.';
+  switch (rec.exposureLevel) {
+    case 'PRINCIPAL_REQUIRED': return 'Principal required \u2014 transaction-based compensation creates broker-dealer-like liability.';
+    case 'PRINCIPAL_EXCEPTION': return 'Principal attention recommended \u2014 elevated risk below mandatory threshold.';
+    case 'REVIEWER_PLUS_SUPERVISOR': return 'Supervisor review \u2014 high-severity content, non-transaction compensation.';
+    case 'REVIEWER': return 'Reviewer attention \u2014 medium-severity, standard review.';
+    case 'NONE': return 'No elevated exposure. Logged for audit.';
+    default: return rec.exposureSummary || 'Routed for review.';
+  }
+}
+
 // ── Auth token ────────────────────────────────────────────────────────
 let authToken = null;
 let currentRole = null;
@@ -6139,6 +6171,8 @@ async function loadReviewQueue() {
     const promoterFilter  = document.getElementById('queue-filter-promoter')?.value || '';
     const platformFilter  = document.getElementById('queue-filter-platform')?.value || '';
     const principalFilter = document.getElementById('queue-filter-principal')?.value || '';
+    const exposureFilter  = document.getElementById('queue-filter-exposure')?.value || '';
+    const mismatchFilter  = document.getElementById('queue-filter-mismatch')?.value || '';
     if (queuePage < 1) queuePage = 1;
     let url = CONTENT_RECORDS_URL + '?page=' + queuePage + '&pageSize=' + QUEUE_PAGE_SIZE;
     if (statusFilter)    url += '&archiveStatus=' + encodeURIComponent(statusFilter);
@@ -6146,6 +6180,8 @@ async function loadReviewQueue() {
     if (platformFilter)  url += '&sourcePlatform=' + encodeURIComponent(platformFilter);
     if (severityFilter)  url += '&severity=' + encodeURIComponent(severityFilter);
     if (principalFilter) url += '&requiresPrincipalReview=' + encodeURIComponent(principalFilter);
+    if (exposureFilter)  url += '&exposureLevel=' + encodeURIComponent(exposureFilter);
+    if (mismatchFilter)  url += '&compensationMismatchWithCampaign=' + encodeURIComponent(mismatchFilter);
     const fromDate = document.getElementById('queue-filter-from')?.value || '';
     const toDate   = document.getElementById('queue-filter-to')?.value || '';
     if (fromDate) url += '&capturedFrom=' + encodeURIComponent(fromDate);
@@ -6212,6 +6248,18 @@ async function loadReviewQueue() {
 
       const tr = document.createElement('tr');
       tr.onclick = () => { currentReviewRecordId = rec.id || rec._id || null; window._currentReviewRec = rec; go('review'); };
+      // Phase 5 — exposure + mismatch badges
+      const expLvl = rec.exposureLevel || '';
+      const expLabel = fmtExposure(expLvl);
+      const expColor = fmtExpColor(expLvl);
+      const isMismatch = rec.compensationMismatchWithCampaign === true;
+      const principalBadge = rec.requiresPrincipalReview
+        ? '<span style="display:inline-block;margin-left:4px;padding:1px 5px;font-size:7.5px;font-family:\'IBM Plex Mono\',monospace;background:rgba(239,68,68,0.15);color:var(--red);border:1px solid rgba(239,68,68,0.3);border-radius:2px;vertical-align:middle">PRINCIPAL</span>'
+        : '';
+      const mismatchBadge = isMismatch
+        ? '<span style="display:inline-block;margin-left:4px;padding:1px 5px;font-size:7.5px;font-family:\'IBM Plex Mono\',monospace;background:rgba(239,68,68,0.15);color:var(--red);border:1px solid rgba(239,68,68,0.3);border-radius:2px;vertical-align:middle">DRIFT</span>'
+        : '';
+
       tr.innerHTML = `
         <td class="mono">${esc(recId)}</td>
         <td>
@@ -6220,7 +6268,8 @@ async function loadReviewQueue() {
         </td>
         <td><div class="plat-icon ${platCss}" style="width:20px;height:20px;font-size:9px;border-radius:3px;color:white;font-weight:700">${platLabel}</div></td>
         <td class="muted" style="font-size:11px">${esc(campaign)}</td>
-        <td><span class="sev ${sevClass}"><span class="sev-dot"></span>${esc(severity)}</span> <span style="font-size:8.5px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace" title="Inferred from archiveStatus — backend severity field not yet available">⚠ inferred</span></td>
+        <td><span class="sev ${sevClass}"><span class="sev-dot"></span>${esc(severity)}</span></td>
+        <td style="font-size:10px;white-space:nowrap"><span style="color:${expColor};font-weight:600">${esc(expLabel)}</span>${principalBadge}${mismatchBadge}</td>
         <td><span class="stat ${statClass}">${esc(status)}</span></td>
         <td class="mono" style="font-size:10px;white-space:nowrap">${esc(capturedAt)}</td>
         <td><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();currentReviewRecordId='${esc(rec.id || '')}';window._currentReviewRec=null;go('review')">→ Review</button></td>
@@ -9728,21 +9777,14 @@ async function loadReviewRecord() {
   if (_expDebug) {
     if (rec.exposureLevel) {
       _expDebug.style.display = 'block';
-      var _fmt = function(s) {
-        if (!s) return '—';
-        return s.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
-      };
+      var _fmt = fmtLabel; // Phase 5 helper
+      // "Why Routed Here" plain-English explanation
+      var _whyEl = document.getElementById('sup-exp-why-routed');
+      if (_whyEl) _whyEl.textContent = whyRoutedHere(rec);
       var _expLvlEl = document.getElementById('sup-exp-level');
       if (_expLvlEl) {
-        _expLvlEl.textContent = _fmt(rec.exposureLevel);
-        var _expColors = {
-          PRINCIPAL_REQUIRED: 'var(--red)',
-          PRINCIPAL_EXCEPTION: 'var(--orange)',
-          REVIEWER_PLUS_SUPERVISOR: 'var(--amber)',
-          REVIEWER: 'var(--blue)',
-          NONE: 'var(--green)',
-        };
-        _expLvlEl.style.color = _expColors[rec.exposureLevel] || '';
+        _expLvlEl.textContent = fmtExposure(rec.exposureLevel);
+        _expLvlEl.style.color = fmtExpColor(rec.exposureLevel);
       }
       var _pEl = document.getElementById('sup-exp-principal');
       if (_pEl) {
