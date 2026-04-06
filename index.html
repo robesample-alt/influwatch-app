@@ -1057,6 +1057,23 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
           <div class="sup-trace-step" style="border-bottom:none"><span class="sup-trace-label">Escalation Level</span><span class="sup-trace-val" id="sup-escalation-level" style="font-weight:600;color:var(--amber)">Standard Review</span></div>
         </div>
 
+        <!-- Phase 2.5 — Exposure Debug Card (log-only visibility) -->
+        <div id="sup-exposure-debug" style="padding:10px 12px;border-bottom:1px solid var(--border);display:none">
+          <div style="font-size:8.5px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan);margin-bottom:7px;font-weight:600;display:flex;align-items:center;gap:6px">
+            <span style="font-size:9px">&#9881;</span> Exposure Analysis <span style="font-size:7.5px;font-weight:400;color:var(--text-muted);text-transform:none;letter-spacing:0">(log-only — not routing)</span>
+          </div>
+          <div class="sup-trace-step"><span class="sup-trace-label">Exposure Level</span><span class="sup-trace-val" id="sup-exp-level" style="font-weight:600">&#8212;</span></div>
+          <div class="sup-trace-step"><span class="sup-trace-label">Principal Review</span><span class="sup-trace-val" id="sup-exp-principal">&#8212;</span></div>
+          <div class="sup-trace-step"><span class="sup-trace-label">Comp Type</span><span class="sup-trace-val" id="sup-exp-comp-type" style="font-size:9px">&#8212;</span></div>
+          <div class="sup-trace-step"><span class="sup-trace-label">Transactionality</span><span class="sup-trace-val" id="sup-exp-txn-class" style="font-size:9px">&#8212;</span></div>
+          <div class="sup-trace-step"><span class="sup-trace-label">Comp Basis</span><span class="sup-trace-val" id="sup-exp-comp-basis" style="font-size:9px">&#8212;</span></div>
+          <div class="sup-trace-step" style="border-bottom:none"><span class="sup-trace-label">Summary</span><span class="sup-trace-val" id="sup-exp-summary" style="font-size:9px;line-height:1.5">&#8212;</span></div>
+          <div id="sup-exp-reasons" style="margin-top:6px;display:none">
+            <div style="font-size:8px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);margin-bottom:3px">REASON CODES</div>
+            <div id="sup-exp-reasons-list" style="font-size:8.5px;font-family:'IBM Plex Mono',monospace;color:var(--text-secondary);line-height:1.7"></div>
+          </div>
+        </div>
+
         <!-- Supervisory Rationale -->
         <div class="sup-compliance-only" style="padding:10px 12px;border-bottom:1px solid var(--border)">
           <label class="fl req" style="font-size:8.5px">Supervisory Rationale</label>
@@ -9435,6 +9452,7 @@ function _renderLiveEnrichment(record, comp) {
       '<br><span style="color:var(--text-muted);font-size:10px;padding-left:12px">→ Content assessed against compensation-driven permission boundaries</span>' +
       '<br><br><strong>Result:</strong> ' + result +
       '<br><span style="color:var(--text-muted);font-size:10px;padding-left:12px">→ Supervisory decision required</span>';
+
   }
 }
 
@@ -9680,6 +9698,57 @@ async function loadReviewRecord() {
       'This activity presents <strong style="color:' + pColor + '">' + posture + '</strong>' +
       ' regulatory risk based on ' + (comp ? 'compensation structure (' + (comp.compensationForm || '—') + ')' : 'detected violations') +
       ' and ' + dets.length + ' rule hit' + (dets.length !== 1 ? 's' : '') + '.';
+  }
+
+  // ── Phase 2.5 — Exposure debug card ───────────────────────────────
+  // Populated from the record's exposure fields (Phase 2) + comp
+  // structure (Phase 1). Only shown when exposureLevel exists.
+  var _expDebug = document.getElementById('sup-exposure-debug');
+  if (_expDebug) {
+    if (rec.exposureLevel) {
+      _expDebug.style.display = 'block';
+      var _fmt = function(s) {
+        if (!s) return '—';
+        return s.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+      };
+      var _expLvlEl = document.getElementById('sup-exp-level');
+      if (_expLvlEl) {
+        _expLvlEl.textContent = _fmt(rec.exposureLevel);
+        var _expColors = {
+          PRINCIPAL_REQUIRED: 'var(--red)',
+          PRINCIPAL_EXCEPTION: 'var(--orange)',
+          REVIEWER_PLUS_SUPERVISOR: 'var(--amber)',
+          REVIEWER: 'var(--blue)',
+          NONE: 'var(--green)',
+        };
+        _expLvlEl.style.color = _expColors[rec.exposureLevel] || '';
+      }
+      var _pEl = document.getElementById('sup-exp-principal');
+      if (_pEl) {
+        _pEl.textContent = rec.requiresPrincipalReview ? 'Yes' : 'No';
+        _pEl.style.color = rec.requiresPrincipalReview ? 'var(--red)' : 'var(--green)';
+      }
+      var _compTypeEl = document.getElementById('sup-exp-comp-type');
+      if (_compTypeEl) _compTypeEl.textContent = (comp && comp.compensationType) ? _fmt(comp.compensationType) : '—';
+      var _txnEl = document.getElementById('sup-exp-txn-class');
+      if (_txnEl) _txnEl.textContent = (comp && comp.transactionalityClass) ? _fmt(comp.transactionalityClass) : '—';
+      var _basisEl = document.getElementById('sup-exp-comp-basis');
+      if (_basisEl) _basisEl.textContent = (comp && comp.compensationBasis) ? _fmt(comp.compensationBasis) : '—';
+      var _sumEl = document.getElementById('sup-exp-summary');
+      if (_sumEl) _sumEl.textContent = rec.exposureSummary || '—';
+      var _rcWrap = document.getElementById('sup-exp-reasons');
+      var _rcList = document.getElementById('sup-exp-reasons-list');
+      if (_rcWrap && _rcList) {
+        var _codes = [];
+        try { _codes = JSON.parse(rec.exposureReasonCodes || '[]'); } catch (e) {}
+        if (_codes.length > 0) {
+          _rcWrap.style.display = 'block';
+          _rcList.innerHTML = _codes.map(function(c) { return '<div>· ' + esc(c) + '</div>'; }).join('');
+        } else { _rcWrap.style.display = 'none'; }
+      }
+    } else {
+      _expDebug.style.display = 'none';
+    }
   }
 
   // ── Wire live enrichment ── populate posture, plain-English, traces
