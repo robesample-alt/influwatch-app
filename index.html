@@ -9445,7 +9445,7 @@ function _renderLiveEnrichment(record, comp) {
     var route;
     // Phase 3 — exposure-based principal routing for new records.
     // Legacy fallback: records without exposure data use posture-based routing.
-    if (rec.exposureLevel) {
+    if (record.exposureLevel) {
       var exposureRoutingMap = {
         'PRINCIPAL_REQUIRED':        { text: 'PRINCIPAL REVIEW REQUIRED — EXPOSURE',   bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.4)',  color: 'var(--red)' },
         'PRINCIPAL_EXCEPTION':       { text: 'PRINCIPAL ATTENTION RECOMMENDED',         bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.4)', color: 'var(--orange)' },
@@ -9453,7 +9453,7 @@ function _renderLiveEnrichment(record, comp) {
         'REVIEWER':                  { text: 'REVIEWER ACTION REQUIRED',                bg: 'rgba(59,130,246,0.1)',  border: 'rgba(59,130,246,0.3)', color: 'var(--blue)' },
         'NONE':                      { text: 'LOGGED — NO ELEVATED EXPOSURE',           bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.3)', color: 'var(--green)' },
       };
-      route = exposureRoutingMap[rec.exposureLevel] || { text: 'REVIEW REQUIRED', bg: 'var(--bg-panel)', border: 'var(--border)', color: 'var(--text-muted)' };
+      route = exposureRoutingMap[record.exposureLevel] || { text: 'REVIEW REQUIRED', bg: 'var(--bg-panel)', border: 'var(--border)', color: 'var(--text-muted)' };
     } else {
       // Legacy fallback — posture-based routing for records without exposure data
       var isCompensatedLow = (postureKey === 'LOW') && comp && comp.compensationForm;
