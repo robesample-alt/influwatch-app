@@ -6782,21 +6782,9 @@ async function updateNotificationBell() {
 }
 
 function openAlertsQueue() {
-  // Clear all filters so user sees everything requiring attention
-  // (the queue's default view already shows active statuses only)
-  var statusEl   = document.getElementById('queue-filter-status');
-  var sevEl      = document.getElementById('queue-filter-severity');
-  var promoterEl = document.getElementById('queue-filter-promoter');
-  var platformEl = document.getElementById('queue-filter-platform');
-  var fromEl     = document.getElementById('queue-filter-from');
-  var toEl       = document.getElementById('queue-filter-to');
-  if (statusEl)   statusEl.value   = '';
-  if (sevEl)      sevEl.value      = '';
-  if (promoterEl) promoterEl.value = '';
-  if (platformEl) platformEl.value = '';
-  if (fromEl)     fromEl.value     = '';
-  if (toEl)       toEl.value       = '';
-  queuePage = 1;
+  // Clear ALL filters — including Phase 3/5 exposure filters —
+  // so user sees everything requiring attention.
+  resetQueueFilters();
   go('queue');
 }
 
