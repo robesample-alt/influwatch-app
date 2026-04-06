@@ -544,6 +544,14 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     </label>
     <div style="width:1px;height:18px;background:var(--border)"></div>
     <div class="tb-bell" onclick="openAlertsQueue()" title="Open items requiring attention">&#128276;<div class="tb-bell-count" id="tb-bell-count">—</div></div>
+    <div style="width:1px;height:18px;background:var(--border)"></div>
+    <select id="role-switcher" class="fi" style="width:170px;font-size:10px;padding:3px 6px;background:var(--bg-elevated);border-color:var(--border-bright);color:var(--cyan)" onchange="switchRole(this.value)" title="Preview as different role">
+      <option value="REGISTERED_PRINCIPAL">Principal (Series 24)</option>
+      <option value="DESIGNATED_SUPERVISOR">Supervisor (Series 24)</option>
+      <option value="COMPLIANCE_OFFICER">CCO (Series 24)</option>
+      <option value="REVIEWER">Reviewer (Series 65)</option>
+      <option value="TENANT_ADMIN">Admin</option>
+    </select>
     <div class="tb-user">
       <div class="tb-avatar">SR</div>
       <div>
@@ -5720,6 +5728,9 @@ async function submitLogin() {
 
     currentRole = (data.actor && data.actor.role) ? data.actor.role : '';
     applyRoleVisibility(currentRole);
+    // Sync role switcher dropdown
+    var roleSel = document.getElementById('role-switcher');
+    if (roleSel) roleSel.value = currentRole;
     loadDashboardMetrics();
     updateNotificationBell();
 
@@ -5773,8 +5784,63 @@ function applyRoleVisibility(role) {
   }
 }
 
+// ── Role switcher (demo convenience) ──────────────────────────────────
+// Lets you preview the app as any FINRA role without logging out.
+// Changes UI visibility + queue default filters. Does NOT change the
+// auth token or backend permissions — purely frontend view switching.
+
+var ROLE_DISPLAY = {
+  REGISTERED_PRINCIPAL:  { name: 'James Harlow',   initials: 'JH', label: 'Registered Principal \u00B7 Series 24' },
+  DESIGNATED_SUPERVISOR: { name: 'Sandra Okafor',  initials: 'SO', label: 'Designated Supervisor \u00B7 Series 24' },
+  COMPLIANCE_OFFICER:    { name: 'Marcus Chen',    initials: 'MC', label: 'Chief Compliance Officer \u00B7 Series 24' },
+  REVIEWER:              { name: 'Sofia Reyes',    initials: 'SR', label: 'Reviewer \u00B7 Series 65' },
+  TENANT_ADMIN:          { name: 'Kevin Williams', initials: 'KW', label: 'Tenant Admin' },
+};
+
+function switchRole(role) {
+  currentRole = role;
+  applyRoleVisibility(role);
+
+  // Update top-bar user display
+  var info = ROLE_DISPLAY[role] || ROLE_DISPLAY.REVIEWER;
+  var avatarEl = document.querySelector('.tb-avatar');
+  var unameEl  = document.querySelector('.tb-uname');
+  var uroleEl  = document.querySelector('.tb-urole');
+  if (avatarEl) avatarEl.textContent = info.initials;
+  if (unameEl)  unameEl.textContent  = info.name;
+  if (uroleEl)  uroleEl.textContent  = info.label;
+
+  // Update switcher dropdown to match
+  var sel = document.getElementById('role-switcher');
+  if (sel) sel.value = role;
+
+  // Navigate to appropriate home screen for this role
+  if (role === 'REGISTERED_PRINCIPAL') {
+    go('principal');
+  } else {
+    go('dashboard');
+  }
+}
+
+// ── Role-aware queue defaults ─────────────────────────────────────────
+// Called at the start of loadReviewQueue to pre-set filters based on
+// the current role. Only applies defaults when filters are at their
+// "All" state — doesn't override explicit user filter choices.
+function applyRoleQueueDefaults() {
+  // Principal → redirect to Desk Oversight instead of queue
+  if (currentRole === 'REGISTERED_PRINCIPAL') {
+    go('principal');
+    return false; // signal: don't load queue
+  }
+  return true; // proceed with queue load
+}
+
 // ── Navigation ────────────────────────────────────────────────────────
 function go(name) {
+  // Role-aware redirect: principals go to Desk Oversight instead of queue
+  if (name === 'queue' && currentRole === 'REGISTERED_PRINCIPAL') {
+    name = 'principal';
+  }
   if (typeof updateNotificationBell === 'function') updateNotificationBell();
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const t = document.getElementById('screen-' + name);
