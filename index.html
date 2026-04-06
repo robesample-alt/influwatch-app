@@ -1069,6 +1069,10 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
           <div class="sup-trace-step"><span class="sup-trace-label">Transactionality</span><span class="sup-trace-val" id="sup-exp-txn-class" style="font-size:9px">&#8212;</span></div>
           <div class="sup-trace-step"><span class="sup-trace-label">Comp Basis</span><span class="sup-trace-val" id="sup-exp-comp-basis" style="font-size:9px">&#8212;</span></div>
           <div class="sup-trace-step" style="border-bottom:none"><span class="sup-trace-label">Summary</span><span class="sup-trace-val" id="sup-exp-summary" style="font-size:9px;line-height:1.5">&#8212;</span></div>
+          <div id="sup-exp-campaign-drift" style="margin-top:6px;display:none">
+            <div class="sup-trace-step"><span class="sup-trace-label">Campaign Drift</span><span class="sup-trace-val" id="sup-exp-drift-val" style="font-weight:600">&#8212;</span></div>
+            <div id="sup-exp-drift-summary" style="font-size:9px;color:var(--text-muted);line-height:1.5;padding-left:2px"></div>
+          </div>
           <div id="sup-exp-reasons" style="margin-top:6px;display:none">
             <div style="font-size:8px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);margin-bottom:3px">REASON CODES</div>
             <div id="sup-exp-reasons-list" style="font-size:8.5px;font-family:'IBM Plex Mono',monospace;color:var(--text-secondary);line-height:1.7"></div>
@@ -9753,6 +9757,22 @@ async function loadReviewRecord() {
       if (_basisEl) _basisEl.textContent = (comp && comp.compensationBasis) ? _fmt(comp.compensationBasis) : '—';
       var _sumEl = document.getElementById('sup-exp-summary');
       if (_sumEl) _sumEl.textContent = rec.exposureSummary || '—';
+      // Phase 4 — campaign drift visibility
+      var _driftWrap = document.getElementById('sup-exp-campaign-drift');
+      if (_driftWrap) {
+        if (rec.compensationMismatchWithCampaign != null) {
+          _driftWrap.style.display = 'block';
+          var _driftVal = document.getElementById('sup-exp-drift-val');
+          if (_driftVal) {
+            _driftVal.textContent = rec.compensationMismatchWithCampaign ? 'MISMATCH' : 'Conformant';
+            _driftVal.style.color = rec.compensationMismatchWithCampaign ? 'var(--red)' : 'var(--green)';
+          }
+          var _driftSum = document.getElementById('sup-exp-drift-summary');
+          if (_driftSum) _driftSum.textContent = rec.campaignConformanceSummary || '';
+        } else {
+          _driftWrap.style.display = 'none';
+        }
+      }
       var _rcWrap = document.getElementById('sup-exp-reasons');
       var _rcList = document.getElementById('sup-exp-reasons-list');
       if (_rcWrap && _rcList) {
