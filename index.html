@@ -124,6 +124,7 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg-base);color:var(
 .main{overflow-y:auto;min-height:0;background:var(--bg-base);position:relative;z-index:1}
 .screen{display:none;animation:fadeIn 0.15s ease}
 .screen.active{display:block}
+#screen-principal.active{display:flex;flex-direction:column}
 @keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
 
 /* PAGE HEADER */
@@ -2581,8 +2582,8 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
 </div>
 
 <!-- SCREEN 2: Principal Dashboard -->
-<div id="screen-principal" class="screen">
-  <div class="ph">
+<div id="screen-principal" class="screen" style="height:calc(100vh - 46px)">
+  <div class="ph" style="flex-shrink:0">
     <div>
       <div class="ph-bc">Principal › Dashboard</div>
       <div class="ph-title">Registered Principal Dashboard</div>
@@ -2593,14 +2594,14 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <button class="btn btn-primary btn-sm" onclick="go('progcert')">📜 Annual Program Cert →</button>
     </div>
   </div>
-  <div class="metrics" style="grid-template-columns:repeat(5,1fr)">
-    <div class="metric m-amber"><div class="m-lbl">Decisions This Month</div><div class="m-val">47</div><div class="m-sub ok">+12 vs last month</div></div>
+  <div class="metrics" style="grid-template-columns:repeat(5,1fr);flex-shrink:0">
+    <div class="metric m-amber"><div class="m-lbl">Principal Queue</div><div class="m-val">—</div><div class="m-sub ok">Awaiting principal action</div></div>
     <div class="metric m-green"><div class="m-lbl">Pre-Approvals</div><div class="m-val">31</div><div class="m-sub ok">Avg 1.8h turnaround</div></div>
-    <div class="metric m-red"><div class="m-lbl">Escalations Handled</div><div class="m-val" style="color:var(--red)">4</div><div class="m-sub up">2 still open</div></div>
-    <div class="metric m-blue"><div class="m-lbl">Promoters Supervised</div><div class="m-val">5</div><div class="m-sub">Directly assigned</div></div>
+    <div class="metric m-red"><div class="m-lbl">Escalations Open</div><div class="m-val" style="color:var(--red)">—</div><div class="m-sub up">Across all promoters</div></div>
+    <div class="metric m-blue"><div class="m-lbl">Promoters Supervised</div><div class="m-val">—</div><div class="m-sub">Directly assigned</div></div>
     <div class="metric m-purple"><div class="m-lbl">Program Cert Due</div><div class="m-val" style="font-size:16px;color:var(--purple)">Aug 2026</div><div class="m-sub warn">FINRA Rule 3110</div></div>
   </div>
-  <div id="principal-live-body" style="overflow-y:auto;height:calc(100vh - 46px - 60px - 55px)">
+  <div id="principal-live-body" style="flex:1;overflow-y:auto">
     <div style="padding:40px;text-align:center;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:11px">LOADING DESK OVERSIGHT&#8230;</div>
   </div>
 </div>
