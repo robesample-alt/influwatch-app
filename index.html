@@ -2426,6 +2426,34 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       </div>
     </div>
 
+    <!-- Tenant Type -->
+    <div class="panel">
+      <div class="panel-hdr"><div class="panel-title">Firm Type</div></div>
+      <div style="padding:14px;display:flex;flex-direction:column;gap:6px">
+        <div style="font-size:10.5px;color:var(--text-muted);margin-bottom:4px">Select the regulatory category that applies to your firm. This determines labeling, rule profiles, and compliance terminology throughout the system.</div>
+        <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--bg-base);border:1px solid var(--border);cursor:pointer;border-radius:3px" onclick="selectTenantType('BD')">
+          <input type="radio" name="tc-tenant-type" value="BD" style="accent-color:var(--amber);margin-top:2px;flex-shrink:0">
+          <div><div style="font-size:12px;font-weight:600">Broker-Dealer</div><div style="font-size:10px;color:var(--text-muted)">FINRA regulated. Rules 3110, 2210, 2040. Series 24 principal supervision.</div></div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--bg-base);border:1px solid var(--border);cursor:pointer;border-radius:3px" onclick="selectTenantType('RIA')">
+          <input type="radio" name="tc-tenant-type" value="RIA" style="accent-color:var(--amber);margin-top:2px;flex-shrink:0">
+          <div><div style="font-size:12px;font-weight:600">Registered Investment Adviser</div><div style="font-size:10px;color:var(--text-muted)">SEC regulated. Rule 206(4)-1. Fiduciary standard.</div></div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--bg-base);border:1px solid var(--border);cursor:pointer;border-radius:3px" onclick="selectTenantType('ISSUER')">
+          <input type="radio" name="tc-tenant-type" value="ISSUER" style="accent-color:var(--amber);margin-top:2px;flex-shrink:0">
+          <div><div style="font-size:12px;font-weight:600">Reg A+ Issuer</div><div style="font-size:10px;color:var(--text-muted)">Direct offering. SEC regulated. Testing-the-waters and general solicitation rules.</div></div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--bg-base);border:1px solid var(--border);cursor:pointer;border-radius:3px" onclick="selectTenantType('REG_CF')">
+          <input type="radio" name="tc-tenant-type" value="REG_CF" style="accent-color:var(--amber);margin-top:2px;flex-shrink:0">
+          <div><div style="font-size:12px;font-weight:600">Reg CF Funding Portal</div><div style="font-size:10px;color:var(--text-muted)">FINRA/SEC regulated. Crowdfunding rules. Promoter communication restrictions.</div></div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--bg-base);border:1px solid var(--border);cursor:pointer;border-radius:3px" onclick="selectTenantType('FINTECH')">
+          <input type="radio" name="tc-tenant-type" value="FINTECH" style="accent-color:var(--amber);margin-top:2px;flex-shrink:0">
+          <div><div style="font-size:12px;font-weight:600">Fintech Platform</div><div style="font-size:10px;color:var(--text-muted)">App/platform with BD or RIA registration. Influencer marketing programs.</div></div>
+        </label>
+      </div>
+    </div>
+
     <!-- SLA Thresholds -->
     <div class="panel">
       <div class="panel-hdr"><div class="panel-title">SLA Thresholds</div></div>
@@ -5816,6 +5844,7 @@ function whyRoutedHere(rec) {
 // ── Auth token ────────────────────────────────────────────────────────
 let authToken = null;
 let currentRole = null;
+let currentTenantType = null;
 
 async function submitLogin() {
   const email    = document.getElementById('login-email').value.trim();
@@ -5863,6 +5892,8 @@ async function submitLogin() {
     }
 
     currentRole = (data.actor && data.actor.role) ? data.actor.role : '';
+    currentTenantType = (data.tenant && data.tenant.tenantType) ? data.tenant.tenantType : 'BD';
+    console.log('[InfluWatch] tenantType:', currentTenantType);
     applyRoleVisibility(currentRole);
     // Sync role switcher dropdown
     var roleSel = document.getElementById('role-switcher');
@@ -7488,6 +7519,15 @@ function _tcFields() {
   };
 }
 
+var _tcSelectedTenantType = 'BD';
+
+function selectTenantType(type) {
+  _tcSelectedTenantType = type;
+  // Highlight the selected radio
+  var radios = document.querySelectorAll('input[name="tc-tenant-type"]');
+  radios.forEach(function(r) { r.checked = r.value === type; });
+}
+
 function _tcPopulate(cfg) {
   const set = (id, val) => { const el = document.getElementById(id); if (el && val != null) el.value = val; };
   set('tc-firm-name',        cfg.firmName);
@@ -7500,6 +7540,9 @@ function _tcPopulate(cfg) {
   set('tc-sla-medium',       cfg.slaThresholdMedium);
   set('tc-sla-low',          cfg.slaThresholdLow);
   set('tc-retention-years',  cfg.retentionYears);
+  // Tenant type radio
+  _tcSelectedTenantType = cfg.tenantType || 'BD';
+  selectTenantType(_tcSelectedTenantType);
 }
 
 async function loadTenantConfig() {
@@ -7527,6 +7570,7 @@ async function loadTenantConfig() {
       slaThresholdMedium:   Number(cfg.slaThresholdMedium),
       slaThresholdLow:      Number(cfg.slaThresholdLow),
       retentionYears:       Number(cfg.retentionYears),
+      tenantType:           cfg.tenantType           ?? 'BD',
     };
     if (statusEl) statusEl.textContent = '';
   } catch (err) {
@@ -7608,6 +7652,11 @@ async function saveTenantConfig() {
     if (_tcOriginal === null || current[key] !== _tcOriginal[key]) {
       if (current[key] !== null && current[key] !== '') patch[key] = current[key];
     }
+  }
+
+  // Include tenantType if it changed
+  if (_tcSelectedTenantType && _tcSelectedTenantType !== (_tcOriginal?.tenantType || 'BD')) {
+    patch.tenantType = _tcSelectedTenantType;
   }
 
   if (Object.keys(patch).length === 0) {
