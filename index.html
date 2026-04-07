@@ -5417,6 +5417,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
         <div style="font-size:9px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.12em;color:var(--amber);font-weight:600">Content to Analyze</div>
         <div style="display:flex;gap:6px">
+          <label class="btn btn-ghost btn-sm" style="font-size:9px;cursor:pointer"><input type="file" accept="video/*,audio/*" style="display:none" onchange="scanVideoFile(this.files[0])">&#127909; Upload Video</label>
           <button class="btn btn-ghost btn-sm" style="font-size:9px" onclick="addScanItem()">+ Add Post</button>
           <button class="btn btn-ghost btn-sm" style="font-size:9px;color:var(--red)" onclick="clearScanItems()">Clear All</button>
         </div>
@@ -8069,6 +8070,84 @@ function clearScanItems() {
     '</div>';
   document.getElementById('scan-results').innerHTML =
     '<div style="padding:40px;text-align:center;color:var(--text-muted);font-size:12px;line-height:1.8">Paste promoter content on the left and click<br><strong style="color:var(--amber)">Run Compliance Scan</strong><br>to analyze for violations.</div>';
+}
+
+async function scanVideoFile(file) {
+  if (!file) return;
+  if (file.size > 25 * 1024 * 1024) { showToast('File too large \u2014 max 25MB'); return; }
+
+  var status = document.getElementById('scan-status');
+  var results = document.getElementById('scan-results');
+  var btn = document.getElementById('scan-run-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Transcribing video\u2026'; }
+  if (status) status.textContent = 'Uploading + transcribing via Whisper\u2026';
+  if (results) results.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace;font-size:11px;animation:pulse 1.5s infinite">\u23F3 Transcribing video\u2026 then running compliance analysis.</div>';
+
+  try {
+    var form = new FormData();
+    form.append('file', file);
+    var res = await fetch('https://influwatch-backend.onrender.com/api/influwatch/debug/compliance-scan-video', {
+      method: 'POST',
+      headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {},
+      body: form,
+    });
+    if (!res.ok) { var err = await res.json(); throw new Error(err.error || 'HTTP ' + res.status); }
+    var data = await res.json();
+
+    var sevColors = { CRITICAL: 'var(--red)', HIGH: 'var(--orange)', MEDIUM: 'var(--amber)', LOW: 'var(--green)' };
+    var sevColor = sevColors[data.severity] || 'var(--text-muted)';
+    var html = '';
+
+    // Summary
+    html += '<div style="padding:12px 16px;background:var(--bg-surface);border:1px solid var(--border);border-radius:4px;margin-bottom:14px">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+    html += '<div style="font-size:14px;font-weight:700">\u127909 Video Scan Complete</div>';
+    html += '<span class="sev sev-' + data.severity.toLowerCase() + '"><span class="sev-dot"></span>' + data.severity + '</span>';
+    html += '</div>';
+    html += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">' + esc(file.name) + ' \u00B7 ' + data.wordCount + ' words transcribed \u00B7 ' + data.findingCount + ' finding' + (data.findingCount !== 1 ? 's' : '') + '</div>';
+    html += '<div style="font-size:10px;color:var(--amber);font-family:\'IBM Plex Mono\',monospace;padding:8px 10px;background:var(--amber-dim);border:1px solid var(--amber-bdr);border-radius:3px;line-height:1.5">\u26A0 ' + esc(data.disclaimer) + '</div>';
+    html += '</div>';
+
+    // Transcript
+    html += '<div style="padding:10px 14px;background:var(--bg-panel);border:1px solid var(--border);border-radius:4px;margin-bottom:14px">';
+    html += '<div style="font-size:9px;font-family:\'IBM Plex Mono\',monospace;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:6px">Transcript (Whisper)</div>';
+    html += '<div style="font-size:11px;line-height:1.7;color:var(--text-secondary);max-height:150px;overflow-y:auto">' + esc(data.transcript) + '</div>';
+    html += '</div>';
+
+    // Findings
+    if (data.findings && data.findings.length > 0) {
+      html += '<div style="border-left:3px solid ' + sevColor + ';padding:14px 16px;background:var(--bg-panel);border-radius:0 4px 4px 0;margin-bottom:10px">';
+      data.findings.forEach(function(f) {
+        var fColor = sevColors[f.severity] || 'var(--text-muted)';
+        html += '<div style="padding:8px 10px;border-left:2px solid ' + fColor + ';margin-bottom:6px;background:var(--bg-base)">';
+        html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
+        html += '<span class="sev sev-' + f.severity.toLowerCase() + '" style="font-size:8px"><span class="sev-dot"></span>' + f.severity + '</span>';
+        html += '<span style="font-weight:700;font-size:11px">' + esc(f.title) + '</span></div>';
+        html += '<div style="font-size:10.5px;color:var(--text-secondary);line-height:1.5;margin-bottom:4px">' + esc(f.description) + '</div>';
+        if (f.flaggedLanguage && f.flaggedLanguage.length > 0) {
+          html += '<div style="font-size:9px;font-family:\'IBM Plex Mono\',monospace;color:var(--text-muted);margin-top:4px">Flagged language:</div>';
+          f.flaggedLanguage.forEach(function(p) { html += '<div style="font-size:10px;padding:2px 0"><mark>' + esc(p) + '</mark></div>'; });
+        }
+        html += '</div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<div style="font-size:11px;color:var(--green);padding:12px">\u2713 No compliance issues identified in this video.</div>';
+    }
+
+    // CTA
+    html += '<div style="padding:16px;background:var(--bg-surface);border:1px solid var(--amber-bdr);border-radius:4px;text-align:center;margin-top:14px">';
+    html += '<div style="font-size:13px;font-weight:700;margin-bottom:6px">Want the full picture?</div>';
+    html += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:12px;line-height:1.6">Onboard this promoter to unlock compensation-based exposure analysis, principal routing, referral code tracking, and FINRA-ready evidence packaging.</div>';
+    html += '<button class="btn btn-amber-outline" onclick="go(\'register\')">Onboard Promoter \u2192</button></div>';
+
+    results.innerHTML = html;
+    if (status) status.textContent = 'Video scan complete \u2014 ' + data.findingCount + ' findings';
+  } catch (err) {
+    if (results) results.innerHTML = '<div style="padding:20px;color:var(--red);font-family:\'IBM Plex Mono\',monospace;font-size:11px">\u26A0 ' + esc(err.message) + '</div>';
+    if (status) status.textContent = 'Video scan failed';
+  }
+  if (btn) { btn.disabled = false; btn.textContent = 'Run Compliance Scan'; }
 }
 
 async function runComplianceScan() {
