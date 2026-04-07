@@ -685,6 +685,10 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     </div>
     <div class="ph-actions">
       <button class="btn btn-secondary" onclick="go('audit')">📦 Export Evidence</button>
+      <div style="width:1px;height:20px;background:var(--border)"></div>
+      <button class="btn btn-ghost btn-sm" style="color:var(--cyan);font-size:9px" onclick="simulateIngest()" id="sim-ingest-btn">&#9654; Simulate Ingest</button>
+      <button class="btn btn-ghost btn-sm" style="color:var(--cyan);font-size:9px" onclick="toggleAutoIngest()" id="sim-auto-btn">&#8635; Auto: OFF</button>
+      <button class="btn btn-ghost btn-sm" style="color:var(--red);font-size:9px" onclick="demoReset()">&#8634; Reset Demo</button>
     </div>
   </div>
   <div class="metrics" style="grid-template-columns:repeat(6,1fr)">
@@ -5664,6 +5668,69 @@ var EXP_LEVEL_COLORS = {
 };
 function fmtExposure(lvl) { return EXP_LEVEL_LABELS[lvl] || fmtLabel(lvl); }
 function fmtExpColor(lvl) { return EXP_LEVEL_COLORS[lvl] || ''; }
+// ── Demo Simulator controls ───────────────────────────────────────────
+var _simAutoRunning = false;
+async function simulateIngest() {
+  var btn = document.getElementById('sim-ingest-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Ingesting\u2026'; }
+  try {
+    var r = await fetch('https://influwatch-backend.onrender.com/api/influwatch/debug/simulate-ingest?count=2', {
+      method: 'POST', headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {},
+    });
+    var d = await r.json();
+    showToast('Simulated ' + (d.ingested || 0) + ' records');
+    updateNotificationBell();
+    if (typeof loadDashboardMetrics === 'function') loadDashboardMetrics();
+  } catch (e) { showToast('Simulation failed: ' + e.message); }
+  if (btn) { btn.disabled = false; btn.textContent = '\u25B6 Simulate Ingest'; }
+}
+async function toggleAutoIngest() {
+  var btn = document.getElementById('sim-auto-btn');
+  var endpoint = _simAutoRunning ? 'simulate-stop' : 'simulate-start';
+  try {
+    var r = await fetch('https://influwatch-backend.onrender.com/api/influwatch/debug/' + endpoint + '?interval=300000', {
+      method: 'POST', headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {},
+    });
+    var d = await r.json();
+    _simAutoRunning = d.running;
+    if (btn) {
+      btn.textContent = _simAutoRunning ? '\u23F8 Auto: ON' : '\u8635 Auto: OFF';
+      btn.style.color = _simAutoRunning ? 'var(--green)' : 'var(--cyan)';
+    }
+    showToast(_simAutoRunning ? 'Auto-ingest started (every 5 min)' : 'Auto-ingest stopped');
+  } catch (e) { showToast('Toggle failed: ' + e.message); }
+}
+async function demoReset() {
+  if (!confirm('Reset demo environment? This will purge all content records and create fresh starter data through the full pipeline.')) return;
+  var btn = document.querySelector('[onclick="demoReset()"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Resetting\u2026'; }
+  try {
+    var r = await fetch('https://influwatch-backend.onrender.com/api/influwatch/debug/demo-reset', {
+      method: 'POST', headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {},
+    });
+    var d = await r.json();
+    showToast(d.message || 'Demo reset complete');
+    updateNotificationBell();
+    if (typeof loadDashboardMetrics === 'function') loadDashboardMetrics();
+  } catch (e) { showToast('Reset failed: ' + e.message); }
+  if (btn) { btn.disabled = false; btn.textContent = '\u21B4 Reset Demo'; }
+}
+// Check auto-ingest status on load
+async function checkSimStatus() {
+  try {
+    var r = await fetch('https://influwatch-backend.onrender.com/api/influwatch/debug/simulate-status', {
+      headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {},
+    });
+    var d = await r.json();
+    _simAutoRunning = d.running;
+    var btn = document.getElementById('sim-auto-btn');
+    if (btn) {
+      btn.textContent = _simAutoRunning ? '\u23F8 Auto: ON' : '\u8635 Auto: OFF';
+      btn.style.color = _simAutoRunning ? 'var(--green)' : 'var(--cyan)';
+    }
+  } catch (e) {}
+}
+
 function whyRoutedHere(rec) {
   if (!rec.exposureLevel) return 'Legacy record \u2014 routing based on compensation posture.';
   if (rec.compensationMismatchWithCampaign === true) return 'Principal required \u2014 campaign compensation drift detected.';
@@ -5733,6 +5800,7 @@ async function submitLogin() {
     if (roleSel) roleSel.value = currentRole;
     loadDashboardMetrics();
     updateNotificationBell();
+    checkSimStatus();
 
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('main-shell').style.display   = 'grid';
