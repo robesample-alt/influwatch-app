@@ -1113,10 +1113,12 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
           <div class="char-count bad" id="charCount" style="font-size:9px">0 / 20 minimum</div>
         </div>
 
-        <!-- Regulatory Citation -->
+        <!-- Supervisory Review Basis -->
         <div class="sup-compliance-only" style="padding:10px 12px;border-bottom:1px solid var(--border)">
-          <label class="fl" style="font-size:8.5px">Regulatory Citation</label>
-          <input id="rev-reg-citation" class="fi fi-mono" value="SEC Rule 10b-5; SEC Rule 17(b)" placeholder="e.g. FINRA 2210(d)(1)" style="font-size:11px">
+          <label class="fl" style="font-size:8.5px">Supervisory Review Basis</label>
+          <select id="rev-reg-citation-select" class="fi fi-mono" style="font-size:11px" onchange="toggleCitationOther()"></select>
+          <input id="rev-reg-citation-other" class="fi fi-mono" placeholder="Specify citation..." style="font-size:11px;margin-top:6px;display:none" type="text">
+          <div style="margin-top:4px;font-size:8.5px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace">Select the regulatory basis for this supervisory determination. This citation appears in the evidence package.</div>
         </div>
 
         <!-- Record Decision -->
@@ -6081,6 +6083,87 @@ function applyRoleVisibility(role) {
   }
 }
 
+// ── Supervisory citation dropdown ─────────────────────────────────────
+var SUPERVISORY_CITATIONS = {
+  BD: [
+    { value: 'FINRA_3110_ONGOING',    label: 'FINRA Rule 3110 \u2014 Ongoing supervision of retail communications' },
+    { value: 'FINRA_2210B_PRINCIPAL', label: 'FINRA Rule 2210(b) \u2014 Principal review of retail communication' },
+    { value: 'FINRA_3110B2_CORRESP',  label: 'FINRA Rule 3110(b)(2) \u2014 Review of correspondence' },
+    { value: 'FINRA_2010_STANDARDS',  label: 'FINRA Rule 2010 \u2014 Standards of commercial honor' },
+    { value: 'FINRA_4511_RECORDS',    label: 'FINRA Rule 4511 \u2014 Recordkeeping' },
+    { value: 'SEC_10B5_ANTIFRAUD',    label: 'SEC Rule 10b-5 \u2014 Anti-fraud provisions' },
+    { value: 'OTHER',                 label: 'Other \u2014 specify below' },
+  ],
+  ISSUER: [
+    { value: 'REGA_RULE255_COMM',     label: 'Reg A Rule 255 \u2014 Offering communication supervision' },
+    { value: 'SEC_17A_ANTIFRAUD',     label: 'Securities Act Section 17(a) \u2014 Anti-fraud' },
+    { value: 'SEC_10B5_ANTIFRAUD',    label: 'SEC Rule 10b-5 \u2014 Anti-fraud provisions' },
+    { value: 'REGA_ONGOING_REPORT',   label: 'Reg A ongoing reporting \u2014 Form 1-K / 1-SA' },
+    { value: 'OTHER',                 label: 'Other \u2014 specify below' },
+  ],
+  REG_CF: [
+    { value: 'REGCF_RULE204_COMM',    label: 'Reg CF Rule 204 \u2014 Portal communication standards' },
+    { value: 'FINRA_3110_ONGOING',    label: 'FINRA Rule 3110 \u2014 Ongoing supervision' },
+    { value: 'FINRA_2210B_PRINCIPAL', label: 'FINRA Rule 2210(b) \u2014 Principal review' },
+    { value: 'SEC_10B5_ANTIFRAUD',    label: 'SEC Rule 10b-5 \u2014 Anti-fraud provisions' },
+    { value: 'OTHER',                 label: 'Other \u2014 specify below' },
+  ],
+  FINTECH: [
+    { value: 'FINRA_3110_ONGOING',    label: 'FINRA Rule 3110 \u2014 Ongoing supervision of retail communications' },
+    { value: 'FINRA_2210B_PRINCIPAL', label: 'FINRA Rule 2210(b) \u2014 Principal review of retail communication' },
+    { value: 'FINRA_2010_STANDARDS',  label: 'FINRA Rule 2010 \u2014 Standards of commercial honor' },
+    { value: 'SEC_10B5_ANTIFRAUD',    label: 'SEC Rule 10b-5 \u2014 Anti-fraud provisions' },
+    { value: 'OTHER',                 label: 'Other \u2014 specify below' },
+  ],
+  RIA: [
+    { value: 'SEC_2064_7_CCO',        label: 'SEC Rule 206(4)-7 \u2014 CCO compliance review' },
+    { value: 'SEC_2064_1_MARKETING',  label: 'SEC Rule 206(4)-1 \u2014 Marketing Rule / endorsement' },
+    { value: 'SEC_17A_ANTIFRAUD',     label: 'Securities Act Section 17(a) \u2014 Anti-fraud' },
+    { value: 'SEC_10B5_ANTIFRAUD',    label: 'SEC Rule 10b-5 \u2014 Anti-fraud provisions' },
+    { value: 'OTHER',                 label: 'Other \u2014 specify below' },
+  ],
+};
+
+// Auto-select map: exposure level → preferred citation value per tenant type
+var CITATION_AUTO_SELECT = {
+  BD:      { PRINCIPAL_REQUIRED: 'FINRA_2210B_PRINCIPAL', PRINCIPAL_EXCEPTION: 'FINRA_3110_ONGOING', REVIEWER_PLUS_SUPERVISOR: 'FINRA_3110_ONGOING', REVIEWER: 'FINRA_3110_ONGOING', NONE: 'FINRA_4511_RECORDS' },
+  ISSUER:  { PRINCIPAL_REQUIRED: 'REGA_RULE255_COMM',     PRINCIPAL_EXCEPTION: 'REGA_RULE255_COMM',  REVIEWER_PLUS_SUPERVISOR: 'SEC_17A_ANTIFRAUD',  REVIEWER: 'SEC_17A_ANTIFRAUD',  NONE: 'REGA_RULE255_COMM' },
+  REG_CF:  { PRINCIPAL_REQUIRED: 'FINRA_2210B_PRINCIPAL', PRINCIPAL_EXCEPTION: 'FINRA_3110_ONGOING', REVIEWER_PLUS_SUPERVISOR: 'REGCF_RULE204_COMM', REVIEWER: 'REGCF_RULE204_COMM', NONE: 'REGCF_RULE204_COMM' },
+  FINTECH: { PRINCIPAL_REQUIRED: 'FINRA_2210B_PRINCIPAL', PRINCIPAL_EXCEPTION: 'FINRA_3110_ONGOING', REVIEWER_PLUS_SUPERVISOR: 'FINRA_3110_ONGOING', REVIEWER: 'FINRA_3110_ONGOING', NONE: 'FINRA_3110_ONGOING' },
+  RIA:     { PRINCIPAL_REQUIRED: 'SEC_2064_7_CCO',        PRINCIPAL_EXCEPTION: 'SEC_2064_7_CCO',     REVIEWER_PLUS_SUPERVISOR: 'SEC_2064_1_MARKETING', REVIEWER: 'SEC_2064_1_MARKETING', NONE: 'SEC_2064_7_CCO' },
+};
+
+function populateCitationDropdown(exposureLevel) {
+  var sel = document.getElementById('rev-reg-citation-select');
+  if (!sel) return;
+  var opts = SUPERVISORY_CITATIONS[currentTenantType] || SUPERVISORY_CITATIONS['BD'];
+  sel.innerHTML = opts.map(function(o) { return '<option value="' + esc(o.value) + '">' + esc(o.label) + '</option>'; }).join('');
+  // Auto-select based on exposure level
+  var autoMap = CITATION_AUTO_SELECT[currentTenantType] || CITATION_AUTO_SELECT['BD'];
+  var autoVal = autoMap[exposureLevel] || opts[0].value;
+  sel.value = autoVal;
+  toggleCitationOther();
+}
+
+function toggleCitationOther() {
+  var sel = document.getElementById('rev-reg-citation-select');
+  var other = document.getElementById('rev-reg-citation-other');
+  if (sel && other) {
+    other.style.display = sel.value === 'OTHER' ? 'block' : 'none';
+    if (sel.value !== 'OTHER') other.value = '';
+  }
+}
+
+function getSelectedCitation() {
+  var sel = document.getElementById('rev-reg-citation-select');
+  if (!sel) return '';
+  if (sel.value === 'OTHER') {
+    var other = document.getElementById('rev-reg-citation-other');
+    return other ? other.value.trim() : '';
+  }
+  return sel.options[sel.selectedIndex]?.textContent || '';
+}
+
 // ── Role switcher display labels by tenant type ──────────────────────
 var ROLE_DISPLAY_LABELS = {
   BD:      { REGISTERED_PRINCIPAL: 'Principal (Series 24)', DESIGNATED_SUPERVISOR: 'Supervisor (Series 24)', COMPLIANCE_OFFICER: 'CCO (Series 24)', REVIEWER: 'Reviewer (Series 65)', TENANT_ADMIN: 'Admin' },
@@ -6119,7 +6202,7 @@ function applyTenantLabelsToScreens() {
 
   // screen-review
   _s('rev-escalate-desc', 'Route to ' + getTenantLabel('principalTitle') + ' or Legal.');
-  _p('rev-reg-citation', 'e.g. ' + getTenantLabel('regulatoryFramework'));
+  // Citation dropdown is populated by populateCitationDropdown() on record load
 
   // screen-supstatus
   _s('supstatus-principal-label', getTenantLabel('principalTitle') + ' \u00B7 ' + getTenantLabel('principalLicense'));
@@ -6466,10 +6549,8 @@ function loadScenario(id) {
   document.getElementById('rev-dec-meta').textContent = id + ' · ' + s.handle + ' · ' + s.platform;
   document.getElementById('rev-rules-hit').textContent = s.scenarioTag;
 
-  // Regulatory citation — deduplicated, joined
-  const citations = [...new Set(s.violations.map(v => REG_CITATIONS[v.code]).filter(Boolean))].join('; ');
-  const citEl = document.getElementById('rev-reg-citation');
-  if (citEl) citEl.value = citations;
+  // Populate citation dropdown for scenario
+  populateCitationDropdown(s.escalationLevel === 'HIGH' ? 'PRINCIPAL_REQUIRED' : 'REVIEWER');
 
   // Reset decision form to clean state
   const rat = document.getElementById('rationaleText');
@@ -11006,11 +11087,8 @@ async function loadReviewRecord() {
   var titleList = groupedFindings.map(function(g) { return g.title; });
   _s('rev-rules-hit', titleList.length ? titleList.join(' · ') : 'No compliance issues identified');
 
-  var cits = dets.map(function(d) {
-    return (typeof REG_CITATIONS !== 'undefined' && REG_CITATIONS[d.ruleCode]) || null;
-  }).filter(Boolean);
-  var citEl = document.getElementById('rev-reg-citation');
-  if (citEl) citEl.value = cits.filter(function(v, i, a) { return a.indexOf(v) === i; }).join('; ');
+  // Populate citation dropdown — tenant-aware + auto-select by exposure
+  populateCitationDropdown(rec.exposureLevel || '');
 
   // Reset decision form
   var rat2 = document.getElementById('rationaleText');
