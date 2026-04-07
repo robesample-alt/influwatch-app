@@ -545,6 +545,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <div style="width:1px;height:18px;background:var(--border)"></div>
     <div class="tb-bell" onclick="openAlertsQueue()" title="Open items requiring attention">&#128276;<div class="tb-bell-count" id="tb-bell-count">—</div></div>
     <div style="width:1px;height:18px;background:var(--border)"></div>
+    <span id="tenant-type-badge" style="font-size:9px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);background:var(--bg-elevated);border:1px solid var(--border);padding:2px 8px;border-radius:10px;letter-spacing:0.08em">BD</span>
     <select id="role-switcher" class="fi" style="width:170px;font-size:10px;padding:3px 6px;background:var(--bg-elevated);border-color:var(--border-bright);color:var(--cyan)" onchange="switchRole(this.value)" title="Preview as different role">
       <option value="REGISTERED_PRINCIPAL">Principal (Series 24)</option>
       <option value="DESIGNATED_SUPERVISOR">Supervisor (Series 24)</option>
@@ -569,7 +570,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
   <div class="nav-sec nav-sec-setup">
     <div class="nav-sec-lbl">Setup</div>
     <div class="nav-item" id="nav-register" onclick="go('register')"><div class="nav-icon">&#43;</div>Register Promoter</div>
-    <div class="nav-item" id="nav-compensation-config" onclick="go('compensation-config')"><div class="nav-icon">&#9881;</div>Compensation Structure</div>
+    <div class="nav-item" id="nav-compensation-config" onclick="go('compensation-config')" data-tenant-types="BD"><div class="nav-icon">&#9881;</div>Compensation Structure</div>
     <div class="nav-item" id="nav-contracts" onclick="go('contracts')"><div class="nav-icon">&#128221;</div>Agreements &amp; Contracts <div class="nav-badge amber">2</div></div>
     <div class="nav-item" id="nav-preapproval" onclick="go('preapproval')"><div class="nav-icon">&#9997;</div>Pre-Approval Workflow <div class="nav-badge amber">4</div></div>
   </div>
@@ -582,8 +583,8 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <div class="nav-item" id="nav-supstatus" onclick="go('supstatus')" data-roles="compliance principal admin"><div class="nav-icon">&#128737;</div>Supervision Status</div>
     <div class="nav-item" id="nav-promoters" onclick="go('promoters')" data-roles="issuer compliance principal admin"><div class="nav-icon">&#128100;</div>Promoter Registry</div>
     <div class="nav-item" id="nav-promoter-detail" onclick="go('promoter-detail')" style="display:none"><div class="nav-icon" style="font-size:9px">&#9492;</div>&nbsp;Detail</div>
-    <div class="nav-item" id="nav-regcf" onclick="go('regcf')" data-roles="compliance principal admin"><div class="nav-icon">&#128196;</div>Reg CF Monitor</div>
-    <div class="nav-item" id="nav-referral" onclick="go('referral')" data-roles="compliance principal admin"><div class="nav-icon">&#128279;</div>Referral &amp; Affiliate Tracker</div>
+    <div class="nav-item" id="nav-regcf" onclick="go('regcf')" data-roles="compliance principal admin" data-tenant-types="BD REG_CF"><div class="nav-icon">&#128196;</div>Reg CF Monitor</div>
+    <div class="nav-item" id="nav-referral" onclick="go('referral')" data-roles="compliance principal admin" data-tenant-types="BD FINTECH"><div class="nav-icon">&#128279;</div>Referral &amp; Affiliate Tracker</div>
   </div>
   <div class="nav-div"></div>
 
@@ -611,7 +612,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
   <div class="nav-sec nav-sec-governance">
     <div class="nav-sec-lbl">Governance</div>
     <div class="nav-item" id="nav-certify" onclick="go('certify')"><div class="nav-icon">&#9989;</div>Certifications <div class="nav-badge blue">2</div></div>
-    <div class="nav-item" id="nav-progcert" onclick="go('progcert')"><div class="nav-icon">&#128220;</div>Program Certification</div>
+    <div class="nav-item" id="nav-progcert" onclick="go('progcert')" data-tenant-types="BD REG_CF"><div class="nav-icon">&#128220;</div>Program Certification</div>
     <div class="nav-item" id="nav-principal" onclick="go('principal')"><div class="nav-icon">&#127894;</div>Desk Oversight</div>
   </div>
   <div class="nav-div"></div>
@@ -631,14 +632,14 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <div class="nav-sec-lbl">Admin</div>
     <div class="nav-item" id="nav-users" onclick="go('users')"><div class="nav-icon">&#128101;</div>User Management</div>
     <div class="nav-item" id="nav-tenant" onclick="go('tenant')"><div class="nav-icon">&#127970;</div>Tenant Config</div>
-    <div class="nav-item" id="nav-rules" onclick="go('rules')"><div class="nav-icon">&#9881;</div>Rule Engine</div>
+    <div class="nav-item" id="nav-rules" onclick="go('rules')" data-tenant-types="BD REG_CF"><div class="nav-icon">&#9881;</div>Rule Engine</div>
   </div>
   <div class="nav-div"></div>
 
   <!-- EXTERNAL — role-gated, surfaced by applyRoleVisibility() -->
   <div class="nav-sec nav-sec-external">
     <div class="nav-sec-lbl">External</div>
-    <div class="nav-item" id="nav-marketing" onclick="go('marketing')" data-roles="issuer compliance principal admin"><div class="nav-icon">&#128200;</div>Issuer Program Dashboard</div>
+    <div class="nav-item" id="nav-marketing" onclick="go('marketing')" data-roles="issuer compliance principal admin" data-tenant-types="BD"><div class="nav-icon">&#128200;</div>Issuer Program Dashboard</div>
     <div class="nav-item" id="nav-promoter-portal" onclick="go('promoter-portal')" data-roles="promoter"><div class="nav-icon">&#128084;</div>My Compliance Portal</div>
   </div>
   <div class="nav-div"></div>
@@ -646,15 +647,15 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
   <!-- HIDDEN — routable via go(), not visible in nav -->
   <div style="display:none">
     <div class="nav-item" id="nav-disclosure" onclick="go('disclosure')"></div>
-    <div class="nav-item" id="nav-crypto" onclick="go('crypto')"></div>
-    <div class="nav-item" id="nav-products" onclick="go('products')"></div>
-    <div class="nav-item" id="nav-platform" onclick="go('platform')"></div>
-    <div class="nav-item" id="nav-network" onclick="go('network')"></div>
-    <div class="nav-item" id="nav-network-onboard" onclick="go('network-onboard')"></div>
-    <div class="nav-item" id="nav-network-analytics" onclick="go('network-analytics')"></div>
-    <div class="nav-item" id="nav-if-tiers" onclick="go('if-tiers')"></div>
-    <div class="nav-item" id="nav-affiliate-perf" onclick="go('affiliate-perf')"></div>
-    <div class="nav-item" id="nav-education" onclick="go('education')"></div>
+    <div class="nav-item" id="nav-crypto" onclick="go('crypto')" data-tenant-types="BD FINTECH"></div>
+    <div class="nav-item" id="nav-products" onclick="go('products')" data-tenant-types="BD"></div>
+    <div class="nav-item" id="nav-platform" onclick="go('platform')" data-tenant-types="BD FINTECH"></div>
+    <div class="nav-item" id="nav-network" onclick="go('network')" data-tenant-types="BD"></div>
+    <div class="nav-item" id="nav-network-onboard" onclick="go('network-onboard')" data-tenant-types="BD"></div>
+    <div class="nav-item" id="nav-network-analytics" onclick="go('network-analytics')" data-tenant-types="BD"></div>
+    <div class="nav-item" id="nav-if-tiers" onclick="go('if-tiers')" data-tenant-types="BD"></div>
+    <div class="nav-item" id="nav-affiliate-perf" onclick="go('affiliate-perf')" data-tenant-types="BD FINTECH"></div>
+    <div class="nav-item" id="nav-education" onclick="go('education')" data-tenant-types="BD FINTECH"></div>
     <div class="nav-item" id="nav-fundurex-briefings" onclick="go('fundurex-briefings')"></div>
     <div class="nav-item" id="nav-fundurex-nominations" onclick="go('fundurex-nominations')"></div>
     <div class="nav-item" id="nav-iw-reports" onclick="go('iw-reports')"></div>
@@ -5894,7 +5895,10 @@ async function submitLogin() {
     currentRole = (data.actor && data.actor.role) ? data.actor.role : '';
     currentTenantType = (data.tenant && data.tenant.tenantType) ? data.tenant.tenantType : 'BD';
     console.log('[InfluWatch] tenantType:', currentTenantType);
+    var ttBadge = document.getElementById('tenant-type-badge');
+    if (ttBadge) ttBadge.textContent = currentTenantType || 'BD';
     applyRoleVisibility(currentRole);
+    applyTenantTypeVisibility();
     // Sync role switcher dropdown
     var roleSel = document.getElementById('role-switcher');
     if (roleSel) roleSel.value = currentRole;
@@ -5957,6 +5961,23 @@ function applyRoleVisibility(role) {
   }
 }
 
+// ── Tenant type visibility ────────────────────────────────────────────
+// Hides nav items that don't apply to the current tenant type.
+// Works alongside data-roles — both must allow visibility for the
+// element to be shown. If currentTenantType is null/undefined/empty,
+// defaults to BD behavior (show everything).
+function applyTenantTypeVisibility() {
+  var tt = (currentTenantType || 'BD').toUpperCase();
+  document.querySelectorAll('[data-tenant-types]').forEach(function(el) {
+    var allowed = (el.getAttribute('data-tenant-types') || '').split(/\s+/);
+    if (allowed.indexOf(tt) === -1) {
+      el.style.display = 'none';
+    }
+    // Don't force display here — let the role visibility system handle showing.
+    // We only hide; the role system and default CSS handle showing.
+  });
+}
+
 // ── Role switcher (demo convenience) ──────────────────────────────────
 // Lets you preview the app as any FINRA role without logging out.
 // Changes UI visibility + queue default filters. Does NOT change the
@@ -5973,6 +5994,7 @@ var ROLE_DISPLAY = {
 function switchRole(role) {
   currentRole = role;
   applyRoleVisibility(role);
+  applyTenantTypeVisibility();
 
   // Update top-bar user display
   var info = ROLE_DISPLAY[role] || ROLE_DISPLAY.REVIEWER;
