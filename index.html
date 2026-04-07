@@ -1312,13 +1312,23 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <div>
       <div class="ph-bc">InfluWatch / Governance / Rule Engine</div>
       <div class="ph-title">Rule Engine</div>
-      <div class="ph-sub">8 rules configured · 3 profiles (BD, RIA, Reg A) · Phrase match + regex + semantic · 2 Phase 2 pending</div>
-    </div>
-    <div class="ph-actions">
-      <select class="fi" style="width:130px"><option>All Profiles</option><option>BD</option><option>RIA</option><option>Reg A</option></select>
+      <div class="ph-sub" id="rules-sub">Loading...</div>
     </div>
   </div>
+  <div style="padding:8px 18px;font-size:10px;color:var(--text-muted);line-height:1.6;background:var(--bg-surface);border-bottom:1px solid var(--border)">These rules are applied to every piece of content ingested. Compensation classification and exposure routing are applied on top of detection results.</div>
+  <div class="metrics" style="grid-template-columns:repeat(4,1fr)">
+    <div class="metric m-amber"><div class="m-lbl">Phrase Rules</div><div class="m-val" id="rules-phrase-count">\u2014</div><div class="m-sub">Pattern-based detection</div></div>
+    <div class="metric m-cyan"><div class="m-lbl">AI Rules</div><div class="m-val" id="rules-llm-count" style="color:var(--cyan)">\u2014</div><div class="m-sub">Semantic detection (Claude)</div></div>
+    <div class="metric m-blue"><div class="m-lbl">Patterns Monitored</div><div class="m-val" id="rules-pattern-count" style="color:var(--blue)">\u2014</div><div class="m-sub">Total detection signals</div></div>
+    <div class="metric m-green"><div class="m-lbl">Coverage</div><div class="m-val" style="color:var(--green);font-size:16px">Real-time</div><div class="m-sub">Fires on every ingest</div></div>
+  </div>
+  <div id="rules-live-body" style="overflow-y:auto;height:calc(100vh - 46px - 60px - 55px - 40px - 28px);padding:14px 18px">
+    <div style="padding:20px;text-align:center;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:11px">LOADING RULE ENGINE\u2026</div>
+  </div>
+  </div>
 
+<!-- Old static Rule Engine content hidden -->
+<div style="display:none">
   <!-- Profile summary strip -->
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)">
     <div style="background:var(--bg-surface);padding:11px 18px;display:flex;align-items:center;gap:12px">
@@ -1442,7 +1452,8 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     </table>
     <div class="pager"><span class="pg-info">8 rules · 5 active · 1 inactive · 2 phase 2 · Rule changes are audit-logged</span></div>
   </div>
-</div>
+</div><!-- /hidden old static -->
+</div><!-- /screen-rules -->
 
 <!-- ════════════════════════════════════════
      AUDIT LOG
@@ -6890,6 +6901,62 @@ function platformIcon(platform) {
   return { css: '', label: platform.slice(0, 2).toUpperCase() };
 }
 
+// ── Rule Engine — live from API ───────────────────────────────────────
+async function loadRuleEngine() {
+  var body = document.getElementById('rules-live-body');
+  var sub = document.getElementById('rules-sub');
+  if (!body) return;
+  body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace;font-size:11px">LOADING RULE ENGINE\u2026</div>';
+
+  try {
+    var hdrs = authToken ? { 'Authorization': 'Bearer ' + authToken } : {};
+    var res = await fetch('https://influwatch-backend.onrender.com/api/influwatch/debug/rules', { headers: hdrs });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var data = await res.json();
+
+    // Metrics
+    var el;
+    el = document.getElementById('rules-phrase-count'); if (el) el.textContent = data.totalPhraseRules;
+    el = document.getElementById('rules-llm-count');    if (el) el.textContent = data.totalLlmRules;
+    el = document.getElementById('rules-pattern-count');if (el) el.textContent = data.totalPatternsMonitored;
+    if (sub) sub.textContent = (data.totalPhraseRules + data.totalLlmRules) + ' rules active \u00B7 ' + data.totalPatternsMonitored + ' detection patterns \u00B7 Real-time on every ingest';
+
+    var sevColors = { CRITICAL: 'var(--red)', HIGH: 'var(--orange)', MEDIUM: 'var(--amber)', LOW: 'var(--green)' };
+
+    function renderRule(r) {
+      var sc = sevColors[r.severity] || 'var(--text-muted)';
+      return '<div style="padding:12px 14px;border-left:3px solid ' + sc + ';background:var(--bg-panel);border:1px solid var(--border);border-radius:0 4px 4px 0;display:flex;align-items:flex-start;gap:12px">' +
+        '<div style="min-width:70px"><span style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;font-weight:700;color:' + sc + '">' + esc(r.code) + '</span></div>' +
+        '<div style="flex:1">' +
+          '<div style="font-weight:700;font-size:12px;margin-bottom:3px">' + esc(r.name) + '</div>' +
+          '<div style="font-size:10.5px;color:var(--text-secondary);line-height:1.5">' + esc(r.description) + '</div>' +
+        '</div>' +
+        '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;min-width:120px">' +
+          '<span class="sev sev-' + r.severity.toLowerCase() + '" style="font-size:8px"><span class="sev-dot"></span>' + esc(r.severity) + '</span>' +
+          '<span style="font-size:9px;font-family:\'IBM Plex Mono\',monospace;color:var(--text-muted)">' + esc(r.category) + '</span>' +
+          (r.patternCount > 0 ? '<span style="font-size:9px;font-family:\'IBM Plex Mono\',monospace;color:var(--blue)">' + r.patternCount + ' patterns</span>' : '') +
+          '<span class="stat ' + (r.active ? 'stat-active' : 'stat-inactive') + '" style="font-size:8px">' + (r.active ? 'Active' : 'Inactive') + '</span>' +
+        '</div>' +
+      '</div>';
+    }
+
+    var html = '';
+    html += '<div style="font-size:9px;font-family:\'IBM Plex Mono\',monospace;text-transform:uppercase;letter-spacing:0.12em;color:var(--amber);margin-bottom:8px;font-weight:600">Phrase Detection Rules (' + data.phraseRules.length + ')</div>';
+    html += '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px">';
+    data.phraseRules.forEach(function(r) { html += renderRule(r); });
+    html += '</div>';
+
+    html += '<div style="font-size:9px;font-family:\'IBM Plex Mono\',monospace;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan);margin-bottom:8px;font-weight:600">AI Semantic Detection Rules (' + data.llmRules.length + ')</div>';
+    html += '<div style="display:flex;flex-direction:column;gap:6px">';
+    data.llmRules.forEach(function(r) { html += renderRule(r); });
+    html += '</div>';
+
+    body.innerHTML = html;
+  } catch (err) {
+    body.innerHTML = '<div style="padding:20px;color:var(--red);font-family:\'IBM Plex Mono\',monospace;font-size:11px">\u26A0 ' + esc(err.message) + '</div>';
+  }
+}
+
 // ── Certifications — tenant-type-aware model ─────────────────────────
 
 var CERT_MODELS = {
@@ -9886,6 +9953,7 @@ go = function(name) {
   if (name === 'ingest')          loadIngest();
   if (name === 'preapproval')     loadPreApprovals();
   if (name === 'referral')        loadAffiliateLinks();
+  if (name === 'rules')           loadRuleEngine();
   if (name === 'review')          loadReviewRecord();
   if (name === 'tailmonitor')     loadTailMonitor();
 };
