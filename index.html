@@ -6890,6 +6890,101 @@ function platformIcon(platform) {
   return { css: '', label: platform.slice(0, 2).toUpperCase() };
 }
 
+// ── Certifications — tenant-type-aware model ─────────────────────────
+
+var CERT_MODELS = {
+  FINRA: {
+    attestationLabel: 'Supervisory Period Attestation',
+    attestationDesc: 'The designated supervisor must periodically certify that supervision obligations were fulfilled for all assigned promoters during the period.',
+    ruleRef: 'FINRA Rule 3110',
+    signerRole: 'REGISTERED_PRINCIPAL',
+    signerTitle: 'Registered Principal',
+    pendingSectionLabel: 'Promoter Compliance Attestations \u2014 Pending',
+    recordedSectionLabel: 'Supervisory Period Attestations \u2014 Recorded',
+    emptyMsg: 'No supervisory attestations recorded yet',
+    ceNote: null,
+  },
+  RIA: {
+    attestationLabel: 'CCO Annual Compliance Review Attestation',
+    attestationDesc: 'The Chief Compliance Officer must annually review the adequacy of the firm\u2019s compliance policies and procedures and the effectiveness of their implementation. This attestation documents that review.',
+    ruleRef: 'SEC Rule 206(4)-7',
+    signerRole: 'COMPLIANCE_OFFICER',
+    signerTitle: 'Chief Compliance Officer',
+    pendingSectionLabel: 'Compliance Policy Review \u2014 Pending',
+    recordedSectionLabel: 'CCO Annual Reviews \u2014 Recorded',
+    emptyMsg: 'No CCO annual reviews recorded yet',
+    ceNote: 'RIAs are regulated by the SEC, not FINRA. There is no FINRA Regulatory Element or Firm Element CE requirement. The SEC Division of Examinations may review training documentation during examinations.',
+  },
+  ISSUER: {
+    attestationLabel: 'Annual Offering Communication Policy Review',
+    attestationDesc: 'The designated compliance contact must annually review that all offering communications complied with the firm\u2019s offering communication policy and that all compensated promoters operated within approved parameters.',
+    ruleRef: 'Reg A Rule 255 / Securities Act Section 17(a)',
+    signerRole: 'COMPLIANCE_OFFICER',
+    signerTitle: 'Designated Compliance Contact',
+    pendingSectionLabel: 'Offering Communication Reviews \u2014 Pending',
+    recordedSectionLabel: 'Annual Offering Reviews \u2014 Recorded',
+    emptyMsg: 'No annual offering reviews recorded yet',
+    ceNote: 'Reg A+ issuers without a broker-dealer are not FINRA members. There is no FINRA CE requirement. The SEC may review training and supervision documentation during offering reviews.',
+  },
+};
+
+function getCertModel() {
+  var tt = (currentTenantType || 'BD').toUpperCase();
+  if (tt === 'RIA') return CERT_MODELS.RIA;
+  if (tt === 'ISSUER') return CERT_MODELS.ISSUER;
+  return CERT_MODELS.FINRA; // BD, REG_CF, FINTECH
+}
+
+function renderCertificationModel() {
+  var model = getCertModel();
+
+  // Update the attestation banner
+  var label = document.getElementById('cert-attestation-label');
+  if (label) label.textContent = model.attestationLabel;
+  var desc = document.getElementById('cert-attestation-desc');
+  if (desc) desc.textContent = model.attestationDesc;
+
+  // Update the pending section header + static pending row
+  var pendingHeader = document.querySelector('#screen-certify > div:nth-of-type(4)'); // "Promoter Compliance Attestations — Pending"
+  // Use a more reliable approach — find by content
+  document.querySelectorAll('#screen-certify div').forEach(function(el) {
+    if (el.style && el.style.letterSpacing === '0.12em' && el.textContent.includes('Pending')) {
+      if (el.style.color && el.style.color.includes('blue')) {
+        el.textContent = model.pendingSectionLabel;
+      }
+    }
+    if (el.style && el.style.letterSpacing === '0.12em' && el.textContent.includes('Recorded')) {
+      if (el.style.color && el.style.color.includes('green')) {
+        el.textContent = model.recordedSectionLabel;
+      }
+    }
+  });
+
+  // Update the static pending row: role label + cert type
+  var pendingRoleEl = document.querySelector('#screen-certify table:first-of-type td:first-child div:last-child');
+  if (pendingRoleEl && pendingRoleEl.textContent.includes('PRINCIPAL') || pendingRoleEl && pendingRoleEl.textContent.includes('OFFICER') || pendingRoleEl && pendingRoleEl.textContent.includes('CONTACT')) {
+    pendingRoleEl.textContent = model.signerRole;
+  }
+  var pendingTypeEl = document.querySelector('#screen-certify table:first-of-type td.muted');
+  if (pendingTypeEl) {
+    pendingTypeEl.textContent = model.attestationLabel + ' \u00B7 ' + model.ruleRef;
+  }
+
+  // Update empty message
+  var emptyEl = document.getElementById('cert-empty');
+  if (emptyEl) emptyEl.textContent = model.emptyMsg;
+
+  // Add model-specific CE note if applicable
+  var ceNote = document.getElementById('cert-ce-note');
+  if (ceNote && model.ceNote) {
+    ceNote.textContent = model.ceNote;
+  }
+
+  // Update table header for recorded attestations — "Principal" column
+  var thPrincipal = document.querySelector('#cert-table th:nth-child(2)');
+  if (thPrincipal) thPrincipal.textContent = model.signerTitle;
+}
+
 // ── Certifications — API fetch ────────────────────────────────────────
 
 async function loadCertifications() {
@@ -6906,6 +7001,8 @@ async function loadCertifications() {
   if (certSup) certSup.textContent = getTenantLabel('supervisionObligation');
   var certNote = document.getElementById('cert-ce-note');
   if (certNote) certNote.textContent = getTenantLabel('ceNote');
+
+  renderCertificationModel();
 
   const elLoading   = document.getElementById('cert-loading');
   const elError     = document.getElementById('cert-error');
