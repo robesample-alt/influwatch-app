@@ -2077,19 +2077,45 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
             <div><label class="fl req">Entity Type</label><select id="reg-entity-type" class="fi"><option>Individual</option><option>LLC</option><option>Corporation</option><option>Partnership</option><option>Other</option></select></div>
           </div>
           <div><label class="fl req">Supervisory Assignment</label><select id="reg-supervisor" class="fi"><option>J. Harlow — Registered Principal</option></select><div style="margin-top:4px;font-size:9px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace">Only Registered Principals and Designated Supervisors may be assigned supervisory responsibility for a promoter.</div></div>
+          <div>
+            <label class="fl req">Supervisory Relationship</label>
+            <select id="reg-supervisory-relationship" class="fi">
+              <option value="SUPERVISED" selected>Supervised — Fully onboarded under firm supervisory program</option>
+              <option value="PENDING">Pending — Onboarding in progress, not yet active</option>
+              <option value="INDEPENDENT">Independent — Monitoring only (potential BD registration flag)</option>
+              <option value="TAIL_PERIOD">Tail Period — Terminated, tail period monitoring active</option>
+            </select>
+            <div style="margin-top:4px;font-size:9px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace">Determines the promoter's position in the firm's supervisory chain. Independent promoters are flagged for potential unregistered broker-dealer activity review.</div>
+          </div>
         </div>
       </div>
 
       <div class="panel">
-        <div class="panel-hdr"><div class="panel-title">Compensation Governance</div></div>
+        <div class="panel-hdr"><div class="panel-title">Compensation Structure</div></div>
         <div style="padding:14px;display:flex;flex-direction:column;gap:12px">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-            <div><label class="fl req">Compensation Status</label><select id="reg-comp-status" class="fi"><option value="UNCOMPENSATED">Uncompensated</option><option value="COMPENSATED">Compensated</option></select></div>
-            <div><label class="fl req">Compensation Structure</label><select class="fi"><option>Revenue Share</option><option>Fixed Fee</option><option>Hybrid</option><option>Equity</option></select></div>
+          <div>
+            <label class="fl req">Compensation Type</label>
+            <select id="reg-comp-type" class="fi">
+              <option value="UNCOMPENSATED">Uncompensated</option>
+              <option value="FLAT_FEE_PER_POST">Flat Fee Per Post</option>
+              <option value="FLAT_FEE_PER_CAMPAIGN">Flat Fee Per Campaign</option>
+              <option value="MONTHLY_RETAINER">Monthly Retainer</option>
+              <option value="CONTENT_PRODUCTION_FEE">Content Production Fee</option>
+              <option value="AFFILIATE_NON_SECURITIES">Affiliate (Non-Securities)</option>
+              <option value="LEAD_GEN_NON_FUNDED">Lead Generation (Non-Funded)</option>
+              <option value="PER_ACCOUNT_OPENED">Per Account Opened</option>
+              <option value="PER_ACCOUNT_OPENED_AND_FUNDED">Per Account Opened &amp; Funded</option>
+              <option value="PER_LEAD_CONVERTED_TO_INVESTOR">Per Lead Converted to Investor</option>
+              <option value="PER_DOLLAR_INVESTED">Per Dollar Invested</option>
+              <option value="REVENUE_SHARE_SECURITIES">Revenue Share (Securities)</option>
+              <option value="EQUITY_OR_CARRY_NON_TRANSACTIONAL">Equity / Carry (Non-Transactional)</option>
+              <option value="OTHER">Other (Manual Review)</option>
+            </select>
+            <div style="margin-top:4px;font-size:9px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace">The system automatically derives supervisory posture, transactionality class, and exposure routing from this selection.</div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-            <div><label class="fl">Annual Cap ($)</label><input class="fi fi-mono" placeholder="e.g. 250000" type="number"></div>
-            <div><label class="fl">Payment Frequency</label><select class="fi"><option>Monthly</option><option>Quarterly</option><option>Annually</option></select></div>
+            <div><label class="fl">Product Type</label><select id="reg-product-type" class="fi"><option value="REG_D">Reg D</option><option value="REG_A">Reg A</option><option value="REG_CF">Reg CF</option><option value="FUND">Fund</option><option value="ADVISORY_SERVICE">Advisory Service</option><option value="FINTECH">Fintech</option><option value="OTHER">Other</option></select></div>
+            <div><label class="fl">Payment Frequency</label><select class="fi"><option>Monthly</option><option>Quarterly</option><option>Annually</option><option>Per Event</option></select></div>
           </div>
           <div><label class="fl">Agreement Effective Date</label><input class="fi fi-mono" type="date" value="2026-02-01"></div>
           <div><label class="fl">Agreement Expiry</label><input class="fi fi-mono" type="date" value="2027-01-31"></div>
@@ -2165,27 +2191,9 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
         </div>
       </div>
 
-      <div class="panel">
-        <div class="panel-hdr"><div class="panel-title">Applied Rule Configuration</div></div>
-        <div style="padding:8px 14px 4px;font-size:9.5px;color:var(--text-muted);line-height:1.6;font-family:'IBM Plex Mono',monospace">Rule frameworks the firm applies when supervising this promoter's content. These are the firm's obligations — not the promoter's.</div>
-        <div style="padding:8px 14px;display:flex;flex-direction:column;gap:0">
-          <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
-            <input type="checkbox" id="chk-bd" checked style="accent-color:var(--amber);width:14px;height:14px">
-            <label for="chk-bd" style="flex:1;font-size:11.5px;cursor:pointer">BD Supervision Ruleset <span style="font-size:9px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace">FINRA 3110 / 2210</span></label>
-            <span class="stat stat-active">Active</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
-            <input type="checkbox" id="chk-ria" style="accent-color:var(--amber);width:14px;height:14px">
-            <label for="chk-ria" style="flex:1;font-size:11.5px;cursor:pointer">RIA Disclosure Rules <span style="font-size:9px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace">SEC Rule 206(4)-1</span></label>
-            <span class="stat stat-inactive">Off</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;padding:8px 0">
-            <input type="checkbox" id="chk-rega" style="accent-color:var(--amber);width:14px;height:14px">
-            <label for="chk-rega" style="flex:1;font-size:11.5px;cursor:pointer">Reg A+ Rules <span style="font-size:9px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace">SEC Reg A+</span></label>
-            <span class="stat stat-inactive">Off</span>
-          </div>
-        </div>
-      </div>
+      <!-- Applied Rule Configuration panel REMOVED — Phase D-1.
+           The current model runs ALL rules on ALL content. Compensation
+           structure determines routing, not per-promoter rule selection. -->
 
       <div id="register-error" style="display:none;padding:8px 12px;background:rgba(220,53,69,0.12);border:1px solid rgba(220,53,69,0.4);border-radius:3px;font-size:10.5px;color:#ff6b6b;font-family:'IBM Plex Mono',monospace;line-height:1.5"></div>
       <button id="reg-submit-btn" class="btn-submit" onclick="registerPromoter()">REGISTER PROMOTER &amp; ACTIVATE MONITORING</button>
@@ -7981,8 +7989,10 @@ async function registerPromoter() {
     return;
   }
 
-  // Build request body — no status field per spec
-  const body = { displayName, handle, primaryPlatform, riskTier: riskTierRaw };
+  const supervisoryRelationship = document.getElementById('reg-supervisory-relationship')?.value || 'SUPERVISED';
+
+  // Build request body
+  const body = { displayName, handle, primaryPlatform, riskTier: riskTierRaw, supervisoryRelationship };
   // Only include assignedSupervisorId if value looks like a real ID (not the placeholder text)
   if (supId && supId.length < 60 && !supId.includes(' ')) body.assignedSupervisorId = supId;
 
