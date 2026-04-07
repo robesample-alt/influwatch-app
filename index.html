@@ -5801,6 +5801,11 @@ async function submitLogin() {
     loadDashboardMetrics();
     updateNotificationBell();
     checkSimStatus();
+    // Poll bell + dashboard metrics every 30s so the UI stays alive
+    setInterval(function() {
+      updateNotificationBell();
+      if (typeof loadDashboardMetrics === 'function') loadDashboardMetrics();
+    }, 30000);
 
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('main-shell').style.display   = 'grid';
