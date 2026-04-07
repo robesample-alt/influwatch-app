@@ -7702,6 +7702,11 @@ async function saveTenantConfig() {
     const updated = await res.json();
     _tcPopulate(updated);
     _tcOriginal = _tcFields();
+    _tcOriginal.tenantType = _tcSelectedTenantType || 'BD';
+    currentTenantType = _tcSelectedTenantType || 'BD';
+    var ttBadge = document.getElementById('tenant-type-badge');
+    if (ttBadge) ttBadge.textContent = currentTenantType;
+    applyTenantTypeVisibility();
     showToast('Configuration saved');
     if (statusEl) statusEl.textContent = '';
   } catch (err) {
