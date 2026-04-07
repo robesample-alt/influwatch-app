@@ -664,6 +664,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
   <div class="nav-sec">
     <div class="nav-sec-lbl" style="color:var(--cyan);opacity:0.9">Demo</div>
     <div class="nav-item" id="nav-scenariolab" onclick="go('scenariolab')" style="border-left:2px solid var(--cyan)"><div class="nav-icon">&#129514;</div><span style="color:var(--cyan)">Scenario Lab</span></div>
+    <div class="nav-item" id="nav-compliance-scan" onclick="go('compliance-scan')" style="border-left:2px solid var(--cyan)"><div class="nav-icon">&#128270;</div><span style="color:var(--cyan)">Compliance Scan</span></div>
   </div>
 
   <div class="sidebar-foot">
@@ -5400,6 +5401,56 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
 
 
 <!-- ═══════════════════════════════════════════════════════════════════
+     COMPLIANCE SCAN
+════════════════════════════════════════════════════════════════════ -->
+<div id="screen-compliance-scan" class="screen">
+  <div class="ph">
+    <div>
+      <div class="ph-bc">InfluWatch / Tools / Compliance Scan</div>
+      <div class="ph-title">Compliance Scan</div>
+      <div class="ph-sub">Paste promoter content to analyze for compliance violations. No records created. No compensation context required.</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;height:calc(100vh - 46px - 60px - 28px)">
+    <!-- Left: Input -->
+    <div style="border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:9px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.12em;color:var(--amber);font-weight:600">Content to Analyze</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" style="font-size:9px" onclick="addScanItem()">+ Add Post</button>
+          <button class="btn btn-ghost btn-sm" style="font-size:9px;color:var(--red)" onclick="clearScanItems()">Clear All</button>
+        </div>
+      </div>
+      <div id="scan-items-container" style="flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px">
+        <div class="scan-item" data-index="0">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <input type="text" class="fi scan-label" placeholder="Post label (optional)" value="Post 1" style="width:200px;font-size:10px;padding:3px 6px">
+            <button class="btn btn-ghost btn-sm" style="font-size:8px;color:var(--red)" onclick="this.closest('.scan-item').remove()">Remove</button>
+          </div>
+          <textarea class="fi scan-text" rows="5" placeholder="Paste the promoter's post, caption, or transcript here..." style="width:100%;font-size:11px;line-height:1.6;resize:vertical"></textarea>
+        </div>
+      </div>
+      <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px">
+        <button class="btn btn-amber-outline" style="flex:1;justify-content:center" onclick="runComplianceScan()" id="scan-run-btn">Run Compliance Scan</button>
+        <span id="scan-status" style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted)"></span>
+      </div>
+    </div>
+    <!-- Right: Results -->
+    <div style="display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border)">
+        <div style="font-size:9px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.12em;color:var(--amber);font-weight:600">Scan Results</div>
+      </div>
+      <div id="scan-results" style="flex:1;overflow-y:auto;padding:12px 16px">
+        <div style="padding:40px;text-align:center;color:var(--text-muted);font-size:12px;line-height:1.8">
+          Paste promoter content on the left and click<br><strong style="color:var(--amber)">Run Compliance Scan</strong><br>to analyze for violations.
+          <div style="margin-top:16px;font-size:10px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace">No records are created. No data is stored.<br>This is a read-only analysis tool.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
      SCENARIO LAB
 ════════════════════════════════════════════════════════════════════ -->
 <div id="screen-scenariolab" class="screen">
@@ -7982,6 +8033,144 @@ async function submitAddLink() {
     document.getElementById('add-link-dialog')?.remove();
     loadAffiliateLinks();
   } catch (e) { showToast('Error: ' + e.message); }
+}
+
+// ── Compliance Scan ───────────────────────────────────────────────────
+var _scanItemCount = 1;
+
+function addScanItem() {
+  _scanItemCount++;
+  var container = document.getElementById('scan-items-container');
+  if (!container) return;
+  var div = document.createElement('div');
+  div.className = 'scan-item';
+  div.setAttribute('data-index', _scanItemCount);
+  div.innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">' +
+      '<input type="text" class="fi scan-label" placeholder="Post label (optional)" value="Post ' + _scanItemCount + '" style="width:200px;font-size:10px;padding:3px 6px">' +
+      '<button class="btn btn-ghost btn-sm" style="font-size:8px;color:var(--red)" onclick="this.closest(\'.scan-item\').remove()">Remove</button>' +
+    '</div>' +
+    '<textarea class="fi scan-text" rows="5" placeholder="Paste the promoter\'s post, caption, or transcript here..." style="width:100%;font-size:11px;line-height:1.6;resize:vertical"></textarea>';
+  container.appendChild(div);
+  div.querySelector('.scan-text').focus();
+}
+
+function clearScanItems() {
+  var container = document.getElementById('scan-items-container');
+  if (!container) return;
+  _scanItemCount = 1;
+  container.innerHTML =
+    '<div class="scan-item" data-index="0">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">' +
+        '<input type="text" class="fi scan-label" placeholder="Post label (optional)" value="Post 1" style="width:200px;font-size:10px;padding:3px 6px">' +
+        '<button class="btn btn-ghost btn-sm" style="font-size:8px;color:var(--red)" onclick="this.closest(\'.scan-item\').remove()">Remove</button>' +
+      '</div>' +
+      '<textarea class="fi scan-text" rows="5" placeholder="Paste the promoter\'s post, caption, or transcript here..." style="width:100%;font-size:11px;line-height:1.6;resize:vertical"></textarea>' +
+    '</div>';
+  document.getElementById('scan-results').innerHTML =
+    '<div style="padding:40px;text-align:center;color:var(--text-muted);font-size:12px;line-height:1.8">Paste promoter content on the left and click<br><strong style="color:var(--amber)">Run Compliance Scan</strong><br>to analyze for violations.</div>';
+}
+
+async function runComplianceScan() {
+  var items = [];
+  document.querySelectorAll('.scan-item').forEach(function(el) {
+    var label = el.querySelector('.scan-label')?.value || '';
+    var text = el.querySelector('.scan-text')?.value || '';
+    if (text.trim()) items.push({ label: label || 'Post ' + (items.length + 1), text: text });
+  });
+  if (!items.length) { showToast('Paste at least one post to scan'); return; }
+
+  var btn = document.getElementById('scan-run-btn');
+  var status = document.getElementById('scan-status');
+  var results = document.getElementById('scan-results');
+  if (btn) { btn.disabled = true; btn.textContent = 'Analyzing ' + items.length + ' post' + (items.length > 1 ? 's' : '') + '\u2026'; }
+  if (status) status.textContent = 'Running LLM + phrase detection\u2026';
+  if (results) results.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace;font-size:11px;animation:pulse 1.5s infinite">\u23F3 Analyzing content\u2026 This may take 10\u201330 seconds per post.</div>';
+
+  try {
+    var hdrs = { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' };
+    var res = await fetch('https://influwatch-backend.onrender.com/api/influwatch/debug/compliance-scan', {
+      method: 'POST', headers: hdrs,
+      body: JSON.stringify({ items: items }),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var data = await res.json();
+
+    // Render results
+    var sevColors = { CRITICAL: 'var(--red)', HIGH: 'var(--orange)', MEDIUM: 'var(--amber)', LOW: 'var(--green)' };
+
+    var html = '';
+    // Summary bar
+    html += '<div style="padding:12px 16px;background:var(--bg-surface);border:1px solid var(--border);border-radius:4px;margin-bottom:14px">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+    html += '<div style="font-size:14px;font-weight:700">Scan Complete</div>';
+    html += '<div style="font-size:11px;color:var(--text-muted)">' + data.scanned + ' post' + (data.scanned !== 1 ? 's' : '') + ' analyzed \u00B7 ' + data.totalFindings + ' finding' + (data.totalFindings !== 1 ? 's' : '') + '</div>';
+    html += '</div>';
+    html += '<div style="display:flex;gap:12px;margin-bottom:10px">';
+    ['CRITICAL','HIGH','MEDIUM','LOW'].forEach(function(s) {
+      var count = data.severityCounts[s] || 0;
+      if (count > 0) {
+        html += '<span class="sev sev-' + s.toLowerCase() + '" style="font-size:9px"><span class="sev-dot"></span>' + count + ' ' + s + '</span>';
+      }
+    });
+    html += '</div>';
+    html += '<div style="font-size:10px;color:var(--amber);font-family:\'IBM Plex Mono\',monospace;padding:8px 10px;background:var(--amber-dim);border:1px solid var(--amber-bdr);border-radius:3px;line-height:1.5">' +
+      '\u26A0 ' + data.disclaimer + '</div>';
+    html += '</div>';
+
+    // Per-post results
+    (data.results || []).forEach(function(r) {
+      if (r.skipped) return;
+      var sevColor = sevColors[r.severity] || 'var(--text-muted)';
+      html += '<div style="background:var(--bg-panel);border:1px solid var(--border);border-left:3px solid ' + sevColor + ';padding:14px 16px;margin-bottom:10px;border-radius:0 4px 4px 0">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+      html += '<div style="font-weight:700;font-size:13px">' + esc(r.label) + '</div>';
+      html += '<div style="display:flex;align-items:center;gap:8px">';
+      html += '<span class="sev sev-' + r.severity.toLowerCase() + '"><span class="sev-dot"></span>' + r.severity + '</span>';
+      html += '<span style="font-size:10px;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace">' + r.findingCount + ' finding' + (r.findingCount !== 1 ? 's' : '') + '</span>';
+      html += '</div></div>';
+      // Text preview
+      html += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;padding:8px 10px;background:var(--bg-base);border:1px solid var(--border);border-radius:3px;line-height:1.5;font-style:italic">"' + esc(r.textPreview) + '"</div>';
+      // Findings
+      if (r.findings && r.findings.length > 0) {
+        r.findings.forEach(function(f) {
+          var fColor = sevColors[f.severity] || 'var(--text-muted)';
+          html += '<div style="padding:8px 10px;border-left:2px solid ' + fColor + ';margin-bottom:6px;background:var(--bg-base)">';
+          html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
+          html += '<span class="sev sev-' + f.severity.toLowerCase() + '" style="font-size:8px"><span class="sev-dot"></span>' + f.severity + '</span>';
+          html += '<span style="font-weight:700;font-size:11px">' + esc(f.title) + '</span>';
+          html += '</div>';
+          html += '<div style="font-size:10.5px;color:var(--text-secondary);line-height:1.5;margin-bottom:4px">' + esc(f.description) + '</div>';
+          if (f.flaggedLanguage && f.flaggedLanguage.length > 0) {
+            html += '<div style="font-size:9px;font-family:\'IBM Plex Mono\',monospace;color:var(--text-muted);margin-top:4px">Flagged language:</div>';
+            f.flaggedLanguage.forEach(function(p) {
+              html += '<div style="font-size:10px;padding:2px 0"><mark>' + esc(p) + '</mark></div>';
+            });
+          }
+          html += '</div>';
+        });
+      } else {
+        html += '<div style="font-size:11px;color:var(--green);padding:6px 0">\u2713 No compliance issues identified in this content.</div>';
+      }
+      // Note
+      html += '<div style="font-size:9px;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace;margin-top:8px;font-style:italic">' + esc(r.note) + '</div>';
+      html += '</div>';
+    });
+
+    // CTA
+    html += '<div style="padding:16px;background:var(--bg-surface);border:1px solid var(--amber-bdr);border-radius:4px;text-align:center;margin-top:14px">';
+    html += '<div style="font-size:13px;font-weight:700;margin-bottom:6px">Want the full picture?</div>';
+    html += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:12px;line-height:1.6">Onboard this promoter into InfluWatch to unlock compensation-based exposure analysis, principal routing, referral code tracking, campaign conformance, and FINRA-ready evidence packaging.</div>';
+    html += '<button class="btn btn-amber-outline" onclick="go(\'register\')">Onboard Promoter \u2192</button>';
+    html += '</div>';
+
+    results.innerHTML = html;
+    if (status) status.textContent = 'Scan complete \u2014 ' + data.totalFindings + ' findings across ' + data.scanned + ' posts';
+  } catch (err) {
+    if (results) results.innerHTML = '<div style="padding:20px;color:var(--red);font-family:\'IBM Plex Mono\',monospace;font-size:11px">\u26A0 Scan failed: ' + esc(err.message) + '</div>';
+    if (status) status.textContent = 'Scan failed';
+  }
+  if (btn) { btn.disabled = false; btn.textContent = 'Run Compliance Scan'; }
 }
 
 async function loadPrincipal() {
