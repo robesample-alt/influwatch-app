@@ -818,6 +818,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <span style="font-size:8px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-right:4px">Exposure</span>
     <select id="queue-filter-exposure" class="fi" style="width:140px;padding:3px 6px;font-size:10px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Levels</option><option value="PRINCIPAL_REQUIRED">Principal Required</option><option value="PRINCIPAL_EXCEPTION">Principal Attention</option><option value="REVIEWER_PLUS_SUPERVISOR">Supervisor Review</option><option value="REVIEWER">Reviewer</option><option value="NONE">No Exposure</option></select>
     <select id="queue-filter-principal" class="fi" style="width:130px;padding:3px 6px;font-size:10px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Routing</option><option value="true">Principal Only</option><option value="false">Non-Principal</option></select>
+    <select id="queue-filter-comptype" class="fi" style="width:160px;padding:3px 6px;font-size:10px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Comp Types</option><option value="PER_ACCOUNT_OPENED_AND_FUNDED">Per Account Funded</option><option value="PER_DOLLAR_INVESTED">Per Dollar Invested</option><option value="REVENUE_SHARE_SECURITIES">Revenue Share Securities</option><option value="PER_ACCOUNT_OPENED">Per Account Opened</option><option value="LEAD_GEN_NON_FUNDED">Lead Gen</option><option value="FLAT_FEE_PER_POST">Flat Fee Per Post</option><option value="MONTHLY_RETAINER">Monthly Retainer</option><option value="AFFILIATE_NON_SECURITIES">Affiliate Non-Securities</option><option value="EQUITY_OR_CARRY_NON_TRANSACTIONAL">Equity/Carry</option><option value="UNCOMPENSATED">Uncompensated</option><option value="OTHER">Other</option></select>
     <select id="queue-filter-mismatch" class="fi" style="width:140px;padding:3px 6px;font-size:10px" onchange="queuePage=1;loadReviewQueue()"><option value="">All Conformance</option><option value="true">Campaign Mismatch</option><option value="false">Conformant</option></select>
     <button class="btn btn-ghost btn-sm" style="font-size:9px;padding:2px 8px;margin-left:auto" onclick="resetQueueFilters()">Clear All Filters</button>
     <span id="queue-active-filters" style="font-size:9px;font-family:'IBM Plex Mono',monospace;color:var(--amber);display:none"></span>
@@ -844,14 +845,15 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <!-- Queue table -->
     <table id="queue-table" style="display:none">
       <thead><tr>
-        <th>Record ID</th>
-        <th>Promoter</th>
+        <th style="cursor:pointer" onclick="sortQueue('id')">Record ID</th>
+        <th style="cursor:pointer" onclick="sortQueue('promoter')">Promoter</th>
         <th>Platform</th>
         <th>Campaign</th>
-        <th>Severity</th>
-        <th>Exposure</th>
+        <th style="cursor:pointer" onclick="sortQueue('severity')">Severity &#8693;</th>
+        <th style="cursor:pointer" onclick="sortQueue('exposure')">Exposure &#8693;</th>
+        <th style="cursor:pointer" onclick="sortQueue('compType')">Comp Type &#8693;</th>
         <th>Status</th>
-        <th>Captured At</th>
+        <th style="cursor:pointer" onclick="sortQueue('capturedAt')">Captured &#8693;</th>
         <th>Action</th>
       </tr></thead>
       <tbody id="queue-tbody"></tbody>
@@ -6293,13 +6295,105 @@ const QUEUE_STATUSES = ['PENDING_REVIEW', 'REVIEWED'];
 let queuePage = 1;
 const QUEUE_PAGE_SIZE = 25;
 const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
+const EXPOSURE_ORDER = { PRINCIPAL_REQUIRED: 0, PRINCIPAL_EXCEPTION: 1, REVIEWER_PLUS_SUPERVISOR: 2, REVIEWER: 3, NONE: 4 };
+let _queueSortField = 'severity';
+let _queueSortAsc = true; // true = most severe/urgent first
+
+function sortQueue(field) {
+  if (_queueSortField === field) {
+    _queueSortAsc = !_queueSortAsc;
+  } else {
+    _queueSortField = field;
+    _queueSortAsc = true;
+  }
+  // Re-sort existing queue data without re-fetching
+  var q = window._currentQueue || [];
+  if (!q.length) return;
+  q.sort(function(a, b) {
+    var va, vb;
+    switch (field) {
+      case 'severity':
+        va = SEVERITY_ORDER[(inferSeverity(a)||'').toLowerCase()] ?? 9;
+        vb = SEVERITY_ORDER[(inferSeverity(b)||'').toLowerCase()] ?? 9;
+        break;
+      case 'exposure':
+        va = EXPOSURE_ORDER[a.exposureLevel] ?? 9;
+        vb = EXPOSURE_ORDER[b.exposureLevel] ?? 9;
+        break;
+      case 'compType':
+        va = (a.compensationType || 'zzz').toLowerCase();
+        vb = (b.compensationType || 'zzz').toLowerCase();
+        break;
+      case 'promoter':
+        va = (a.ambassador?.displayName || 'zzz').toLowerCase();
+        vb = (b.ambassador?.displayName || 'zzz').toLowerCase();
+        break;
+      case 'capturedAt':
+        va = new Date(a.capturedAt || 0).getTime();
+        vb = new Date(b.capturedAt || 0).getTime();
+        return _queueSortAsc ? vb - va : va - vb;
+      default:
+        va = (a[field] || '').toString().toLowerCase();
+        vb = (b[field] || '').toString().toLowerCase();
+    }
+    if (typeof va === 'string') return _queueSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+    return _queueSortAsc ? va - vb : vb - va;
+  });
+  renderQueueRows(q);
+}
+
+function renderQueueRows(queue) {
+  var tbody = document.getElementById('queue-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  queue.forEach(function(rec, idx) {
+    var displayName = rec.ambassador?.displayName ?? '\u2014';
+    var platform    = rec.sourcePlatform ?? '\u2014';
+    var campaign    = rec.campaign?.campaignName ?? '\u2014';
+    var status      = rec.archiveStatus ?? '\u2014';
+    var severity    = inferSeverity(rec);
+    var capturedAt  = rec.capturedAt
+      ? new Date(rec.capturedAt).toLocaleString('en-US', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false })
+      : '\u2014';
+    var recId       = rec.id || ('REC-' + String(idx + 1).padStart(4, '0'));
+    var sevClass    = 'sev-' + severity.toLowerCase();
+    var statClass   = queueStatClass(status);
+    var pi          = platformIcon(platform);
+    var expLvl      = rec.exposureLevel || '';
+    var expLabel    = fmtExposure(expLvl);
+    var expColor    = fmtExpColor(expLvl);
+    var compType    = rec.compensationType ? fmtLabel(rec.compensationType) : '\u2014';
+    var isMismatch  = rec.compensationMismatchWithCampaign === true;
+    var principalBadge = rec.requiresPrincipalReview
+      ? '<span style="display:inline-block;margin-left:4px;padding:1px 5px;font-size:7.5px;font-family:\'IBM Plex Mono\',monospace;background:rgba(239,68,68,0.15);color:var(--red);border:1px solid rgba(239,68,68,0.3);border-radius:2px;vertical-align:middle">PRINCIPAL</span>'
+      : '';
+    var mismatchBadge = isMismatch
+      ? '<span style="display:inline-block;margin-left:4px;padding:1px 5px;font-size:7.5px;font-family:\'IBM Plex Mono\',monospace;background:rgba(239,68,68,0.15);color:var(--red);border:1px solid rgba(239,68,68,0.3);border-radius:2px;vertical-align:middle">DRIFT</span>'
+      : '';
+
+    var tr = document.createElement('tr');
+    tr.onclick = function() { currentReviewRecordId = rec.id || null; window._currentReviewRec = rec; go('review'); };
+    tr.innerHTML =
+      '<td class="mono">' + esc(recId) + '</td>' +
+      '<td><div style="font-weight:600">' + esc(displayName) + '</div><div style="font-size:9.5px;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace">' + esc(platform) + '</div></td>' +
+      '<td><div class="plat-icon ' + pi.css + '" style="width:20px;height:20px;font-size:9px;border-radius:3px;color:white;font-weight:700">' + pi.label + '</div></td>' +
+      '<td class="muted" style="font-size:11px">' + esc(campaign) + '</td>' +
+      '<td><span class="sev ' + sevClass + '"><span class="sev-dot"></span>' + esc(severity) + '</span></td>' +
+      '<td style="font-size:10px;white-space:nowrap"><span style="color:' + expColor + ';font-weight:600">' + esc(expLabel) + '</span>' + principalBadge + mismatchBadge + '</td>' +
+      '<td style="font-size:9.5px;color:var(--text-secondary);max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + esc(compType) + '">' + esc(compType) + '</td>' +
+      '<td><span class="stat ' + statClass + '">' + esc(status) + '</span></td>' +
+      '<td class="mono" style="font-size:10px;white-space:nowrap">' + esc(capturedAt) + '</td>' +
+      '<td><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();currentReviewRecordId=\'' + esc(rec.id || '') + '\';window._currentReviewRec=null;go(\'review\')">Review</button></td>';
+    tbody.appendChild(tr);
+  });
+}
 
 // Tracks the content record ID selected from the queue — used by submitDecision
 let currentReviewRecordId = null;
 
 function resetQueueFilters() {
   ['queue-filter-severity','queue-filter-status','queue-filter-promoter','queue-filter-platform',
-   'queue-filter-exposure','queue-filter-principal','queue-filter-mismatch'].forEach(function(id) {
+   'queue-filter-exposure','queue-filter-principal','queue-filter-comptype','queue-filter-mismatch'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -6312,7 +6406,7 @@ function resetQueueFilters() {
 }
 function updateActiveFilterIndicator() {
   var ids = ['queue-filter-severity','queue-filter-status','queue-filter-promoter','queue-filter-platform',
-             'queue-filter-exposure','queue-filter-principal','queue-filter-mismatch'];
+             'queue-filter-exposure','queue-filter-principal','queue-filter-comptype','queue-filter-mismatch'];
   var active = ids.filter(function(id) { var el = document.getElementById(id); return el && el.value; }).length;
   var from = document.getElementById('queue-filter-from');
   var to   = document.getElementById('queue-filter-to');
@@ -6363,6 +6457,8 @@ async function loadReviewQueue() {
     if (severityFilter)  url += '&severity=' + encodeURIComponent(severityFilter);
     if (principalFilter) url += '&requiresPrincipalReview=' + encodeURIComponent(principalFilter);
     if (exposureFilter)  url += '&exposureLevel=' + encodeURIComponent(exposureFilter);
+    var compTypeFilter = document.getElementById('queue-filter-comptype')?.value || '';
+    if (compTypeFilter)  url += '&compensationType=' + encodeURIComponent(compTypeFilter);
     if (mismatchFilter)  url += '&compensationMismatchWithCampaign=' + encodeURIComponent(mismatchFilter);
     const fromDate = document.getElementById('queue-filter-from')?.value || '';
     const toDate   = document.getElementById('queue-filter-to')?.value || '';
@@ -6409,55 +6505,7 @@ async function loadReviewQueue() {
     elSubtitle.textContent = queue.length + ' record' + (queue.length !== 1 ? 's' : '') + ' pending supervisory review · ' + tallyStr;
 
     window._currentQueue = queue;
-    queue.forEach((rec, idx) => {
-      const displayName  = rec.ambassador?.displayName ?? '—';
-      const platform     = rec.sourcePlatform           ?? '—';
-      const campaign     = rec.campaign?.campaignName   ?? '—';
-      const status       = rec.archiveStatus            ?? '—';
-      const severity     = inferSeverity(rec);           // ⚠ INFERRED — see note above
-      const capturedAt   = rec.capturedAt
-        ? new Date(rec.capturedAt).toLocaleString('en-US', {
-            year: 'numeric', month: '2-digit', day: '2-digit',
-            hour: '2-digit', minute: '2-digit', hour12: false
-          })
-        : '—';
-      const recId = rec.id || rec._id || ('REC-' + String(idx + 1).padStart(4, '0'));
-
-      const sevClass  = 'sev-' + severity.toLowerCase();
-      const statClass = queueStatClass(status);
-
-      const { css: platCss, label: platLabel } = platformIcon(platform);
-
-      const tr = document.createElement('tr');
-      tr.onclick = () => { currentReviewRecordId = rec.id || rec._id || null; window._currentReviewRec = rec; go('review'); };
-      // Phase 5 — exposure + mismatch badges
-      const expLvl = rec.exposureLevel || '';
-      const expLabel = fmtExposure(expLvl);
-      const expColor = fmtExpColor(expLvl);
-      const isMismatch = rec.compensationMismatchWithCampaign === true;
-      const principalBadge = rec.requiresPrincipalReview
-        ? '<span style="display:inline-block;margin-left:4px;padding:1px 5px;font-size:7.5px;font-family:\'IBM Plex Mono\',monospace;background:rgba(239,68,68,0.15);color:var(--red);border:1px solid rgba(239,68,68,0.3);border-radius:2px;vertical-align:middle">PRINCIPAL</span>'
-        : '';
-      const mismatchBadge = isMismatch
-        ? '<span style="display:inline-block;margin-left:4px;padding:1px 5px;font-size:7.5px;font-family:\'IBM Plex Mono\',monospace;background:rgba(239,68,68,0.15);color:var(--red);border:1px solid rgba(239,68,68,0.3);border-radius:2px;vertical-align:middle">DRIFT</span>'
-        : '';
-
-      tr.innerHTML = `
-        <td class="mono">${esc(recId)}</td>
-        <td>
-          <div style="font-weight:600">${esc(displayName)}</div>
-          <div style="font-size:9.5px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace">${esc(platform)}</div>
-        </td>
-        <td><div class="plat-icon ${platCss}" style="width:20px;height:20px;font-size:9px;border-radius:3px;color:white;font-weight:700">${platLabel}</div></td>
-        <td class="muted" style="font-size:11px">${esc(campaign)}</td>
-        <td><span class="sev ${sevClass}"><span class="sev-dot"></span>${esc(severity)}</span></td>
-        <td style="font-size:10px;white-space:nowrap"><span style="color:${expColor};font-weight:600">${esc(expLabel)}</span>${principalBadge}${mismatchBadge}</td>
-        <td><span class="stat ${statClass}">${esc(status)}</span></td>
-        <td class="mono" style="font-size:10px;white-space:nowrap">${esc(capturedAt)}</td>
-        <td><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();currentReviewRecordId='${esc(rec.id || '')}';window._currentReviewRec=null;go('review')">→ Review</button></td>
-      `;
-      tbody.appendChild(tr);
-    });
+    renderQueueRows(queue);
 
     elTable.style.display = 'table';
     elPager.style.display = 'flex';
