@@ -527,7 +527,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
   </div>
   <div class="tb-badges">
     <span class="tb-badge tb-badge-firm" id="tb-firm-name">—</span>
-    <span class="tb-badge tb-badge-reg">FINRA</span>
+    <span class="tb-badge tb-badge-reg" id="tb-reg-badge">FINRA</span>
     <span class="tb-badge tb-badge-reg">SEC Rule 17a-4</span>
   </div>
   <div class="tb-right">
@@ -1013,7 +1013,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
         <div style="background:var(--bg-panel);border:1px solid var(--border);padding:8px 11px;font-size:9.5px;color:var(--text-muted);line-height:1.6;margin-bottom:10px;font-style:italic;border-radius:3px">InfluWatch surfaces content for supervisory review. Compliance determinations are the responsibility of the Designated Supervisor.</div>
         <div class="dec-btn" data-action="APPROVE" onclick="selectDec(this)"><div class="dec-ico">&#9989;</div><div><div>Log Only &#8212; No Action</div><div class="dec-desc">Content is compliant. Close flag.</div></div></div>
         <div class="dec-btn danger" data-action="WARN_PROMOTER" onclick="selectDec(this)"><div class="dec-ico">&#9888;</div><div><div>Compliance Review Required</div><div class="dec-desc">Route to remediation workflow.</div></div></div>
-        <div class="dec-btn" data-action="ESCALATE" onclick="selectDec(this)"><div class="dec-ico">&#8593;</div><div><div>Principal Review Required</div><div class="dec-desc">Route to Registered Principal or Legal.</div></div></div>
+        <div class="dec-btn" data-action="ESCALATE" onclick="selectDec(this)"><div class="dec-ico">&#8593;</div><div><div>Principal Review Required</div><div class="dec-desc" id="rev-escalate-desc">Route to Registered Principal or Legal.</div></div></div>
         <div class="dec-btn" data-action="APPROVE" onclick="selectDec(this)"><div class="dec-ico">&#9675;</div><div><div>Waive with Rationale</div><div class="dec-desc">Document exception reason.</div></div></div>
         <div class="dec-btn" data-action="CERTIFY" onclick="selectDec(this)"><div class="dec-ico">&#128274;</div><div><div>Certify &amp; Close &#8212; Case Resolved</div><div class="dec-desc">Supervisory sign-off. Formally closes the compliance case.</div></div></div>
         <div style="margin-top:10px;padding:8px 10px;background:var(--bg-base);border:1px solid var(--border);font-size:10px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;justify-content:space-between;border-radius:3px;gap:8px">
@@ -1796,7 +1796,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <div style="display:flex;align-items:center;gap:8px">
               <div style="width:26px;height:26px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white">JH</div>
-              <div><div style="font-size:12px;font-weight:600">J. Harlow</div><div style="font-size:9.5px;color:var(--text-muted)">Registered Principal · Series 24</div></div>
+              <div><div style="font-size:12px;font-weight:600">J. Harlow</div><div style="font-size:9.5px;color:var(--text-muted)" id="supstatus-principal-label">Registered Principal · Series 24</div></div>
             </div>
             <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:11px"><span style="color:var(--amber)">8 open</span> · <span style="color:var(--text-muted)">3 overdue</span></div>
           </div>
@@ -1812,7 +1812,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
             <span>S. Okafor (Reviewer): <strong style="color:var(--amber)">5 open</strong></span>
             <span>S. Reyes (Reviewer): <strong style="color:var(--amber)">2 open</strong></span>
           </div>
-          <div style="font-size:9.5px;color:var(--text-muted);margin-top:5px">Reviewer activity is part of the supervisory workflow. Decisions are made by the Registered Principal.</div>
+          <div style="font-size:9.5px;color:var(--text-muted);margin-top:5px" id="supstatus-decision-note">Reviewer activity is part of the supervisory workflow. Decisions are made by the Registered Principal.</div>
         </div>
       </div>
     </div>
@@ -2087,7 +2087,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
             <div><label class="fl req">Risk Tier</label><select id="reg-risk-tier" class="fi"><option>Low</option><option>Medium</option><option selected>High</option><option>Critical</option></select></div>
             <div><label class="fl req">Entity Type</label><select id="reg-entity-type" class="fi"><option>Individual</option><option>LLC</option><option>Corporation</option><option>Partnership</option><option>Other</option></select></div>
           </div>
-          <div><label class="fl req">Supervisory Assignment</label><select id="reg-supervisor" class="fi"><option>J. Harlow — Registered Principal</option></select><div style="margin-top:4px;font-size:9px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace">Only Registered Principals and Designated Supervisors may be assigned supervisory responsibility for a promoter.</div></div>
+          <div><label class="fl req">Supervisory Assignment</label><select id="reg-supervisor" class="fi"><option>J. Harlow — Registered Principal</option></select><div style="margin-top:4px;font-size:9px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace" id="reg-supervisor-note">Only Registered Principals and Designated Supervisors may be assigned supervisory responsibility for a promoter.</div></div>
           <div>
             <label class="fl req">Supervisory Relationship</label>
             <select id="reg-supervisory-relationship" class="fi">
@@ -2517,7 +2517,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
           <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg-base);border:1px solid var(--border)">
             <div>
               <div style="font-size:11.5px;font-weight:600">Broker-Dealer (BD) Compliance</div>
-              <div style="font-size:10px;color:var(--text-muted)">FINRA Rule 2210 · Reg BI · Communication Rules</div>
+              <div style="font-size:10px;color:var(--text-muted)" id="export-rule-label">FINRA Rule 2210 · Reg BI · Communication Rules</div>
             </div>
             <div style="display:flex;align-items:center;gap:6px">
               <span class="stat stat-active">Active</span>
@@ -2619,7 +2619,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <div>
       <div class="ph-bc">Governance › Pre-Approval</div>
       <div class="ph-title">Pre-Approval Workflow</div>
-      <div class="ph-sub">Promoter-submitted content pending principal sign-off before posting · FINRA Rule 3110(b)</div>
+      <div class="ph-sub" id="preapproval-rule-ref">Promoter-submitted content pending principal sign-off before posting · FINRA Rule 3110(b)</div>
     </div>
     <div class="ph-actions">
       <button class="btn btn-ghost btn-sm">Filters ▾</button>
@@ -2753,7 +2753,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <div>
       <div class="ph-bc">Principal › Program Certification</div>
       <div class="ph-title">Annual Supervisory Program Certification</div>
-      <div class="ph-sub">FINRA Rule 3110 — Registered Principal must annually certify adequacy of the supervisory system</div>
+      <div class="ph-sub" id="progcert-sub">FINRA Rule 3110 — Registered Principal must annually certify adequacy of the supervisory system</div>
     </div>
     <div class="ph-actions">
       <button class="btn btn-secondary btn-sm">📋 Prior Certifications</button>
@@ -2765,11 +2765,11 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
         <div><div style="font-size:11px;font-weight:600;color:var(--amber)">2026 Annual Certification — Due August 31, 2026</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px">Certifying principal: J. Harlow · Series 24 · CRD #1234567</div></div>
         <span class="stat stat-pending">In Progress</span>
       </div>
-      <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);margin-bottom:12px">Certification Checklist — FINRA Rule 3110</div>
+      <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);margin-bottom:12px" id="progcert-checklist-title">Certification Checklist — FINRA Rule 3110</div>
       <div id="progcert-checklist" style="display:flex;flex-direction:column;gap:7px;margin-bottom:20px">
         <label id="pcl-row-1" style="display:flex;align-items:flex-start;gap:10px;padding:10px 13px;background:var(--green-dim);border:1px solid var(--green-bdr);cursor:pointer">
           <input id="pcl-1" type="checkbox" checked onchange="pclToggle(1)" style="margin-top:2px;flex-shrink:0;width:15px;height:15px;accent-color:var(--green)">
-          <div><div style="font-size:11.5px;font-weight:600">Written Supervisory Procedures (WSP) reviewed and updated</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px;font-family:'IBM Plex Mono',monospace">Updated 2026-01-15 · Version 4.2 · Covers all 6 promoter risk categories</div></div>
+          <div><div style="font-size:11.5px;font-weight:600" id="progcert-wsp-label">Written Supervisory Procedures (WSP) reviewed and updated</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px;font-family:'IBM Plex Mono',monospace">Updated 2026-01-15 · Version 4.2 · Covers all 6 promoter risk categories</div></div>
         </label>
         <label id="pcl-row-2" style="display:flex;align-items:flex-start;gap:10px;padding:10px 13px;background:var(--green-dim);border:1px solid var(--green-bdr);cursor:pointer">
           <input id="pcl-2" type="checkbox" checked onchange="pclToggle(2)" style="margin-top:2px;flex-shrink:0;width:15px;height:15px;accent-color:var(--green)">
@@ -2815,7 +2815,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
         <textarea id="progcert-note" class="fi" rows="6" style="font-size:11px;line-height:1.6">I have reviewed and assessed the adequacy of the firm's supervisory system for promoter communications for the period ending December 2026. Based on my review, the system is reasonably designed to achieve compliance with applicable FINRA rules and SEC regulations governing promoter communications.</textarea>
       </div>
       <div><label class="fl">Exception Summary (if any)</label><textarea id="progcert-findings" class="fi" rows="3" placeholder="Describe any deficiencies identified and corrective actions taken..."></textarea></div>
-      <div style="background:var(--bg-panel);border:1px solid var(--border);padding:10px 12px;font-size:10.5px;color:var(--text-secondary);line-height:1.6">By submitting this certification you attest under FINRA Rule 3110 that you have personally reviewed the supervisory system and determined it adequate. This record is immutable.</div>
+      <div style="background:var(--bg-panel);border:1px solid var(--border);padding:10px 12px;font-size:10.5px;color:var(--text-secondary);line-height:1.6">By submitting this certification you attest <span id="progcert-attest-rule">under FINRA Rule 3110</span> that you have personally reviewed the supervisory system and determined it adequate. This record is immutable.</div>
       <div id="progcert-submit-error" style="display:none;background:var(--red-dim);border:1px solid var(--red-bdr);padding:8px 10px;font-size:11px;color:var(--red);font-family:'IBM Plex Mono',monospace"></div>
       <button id="progcert-submit-btn" class="btn-submit" onclick="submitProgramCert()">SUBMIT ANNUAL CERTIFICATION</button>
     </div>
@@ -2919,7 +2919,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
   </table>
   <div class="pager"><div class="pg-info">5 of 23 active links · 2 require action</div><button class="pg-btn on">1</button><button class="pg-btn">2</button><button class="pg-btn">Next →</button></div>
   <div style="margin:14px 18px;background:var(--bg-surface);border:1px solid var(--border);padding:14px">
-    <div style="font-size:9.5px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:10px">Required Disclosures for Referral Compensation — SEC / FINRA</div>
+    <div style="font-size:9.5px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:10px" id="referral-disclosure-header">Required Disclosures for Referral Compensation — SEC / FINRA</div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:11px">
       <div style="padding:10px 12px;background:var(--bg-panel);border:1px solid var(--border)"><div style="color:var(--amber);font-weight:600;margin-bottom:4px">Material Connection</div><div style="color:var(--text-secondary)">Clear disclosure of compensation in every post containing a referral link or code. Vague language is insufficient.</div></div>
       <div style="padding:10px 12px;background:var(--bg-panel);border:1px solid var(--border)"><div style="color:var(--amber);font-weight:600;margin-bottom:4px">Compensation Type</div><div style="color:var(--text-secondary)">Cash, free stock, revenue share — nature of comp must be explicit in every communication.</div></div>
@@ -3429,7 +3429,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     </div>
     <div style="background:var(--bg-surface);border:1px solid var(--border);padding:12px 14px">
       <div style="font-size:10px;font-weight:600;color:var(--red);margin-bottom:6px">💰 Compensation Cap</div>
-      <div style="font-size:10.5px;color:var(--text-secondary);line-height:1.6">Annual compensation cap agreed. Referral-based payments subject to FINRA limits. Cap breach triggers automatic escalation.</div>
+      <div style="font-size:10.5px;color:var(--text-secondary);line-height:1.6">Annual compensation cap agreed. Referral-based payments <span id="contracts-finra-limits">subject to FINRA limits</span>. Cap breach triggers automatic escalation.</div>
     </div>
   </div>
 
@@ -3678,7 +3678,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <div class="metric m-red"><div class="m-lbl">Active Holds</div><div class="m-val" style="color:var(--red)">1</div><div class="m-sub up">Records frozen</div></div>
     <div class="metric m-amber"><div class="m-lbl">Records Under Hold</div><div class="m-val" style="color:var(--amber)">847</div><div class="m-sub warn">Captures + decisions</div></div>
     <div class="metric m-green"><div class="m-lbl">Released Holds (YTD)</div><div class="m-val">2</div><div class="m-sub ok">Properly closed</div></div>
-    <div class="metric m-blue"><div class="m-lbl">Hold Types</div><div class="m-val" style="font-size:14px">FINRA</div><div class="m-sub">Regulatory inquiry</div></div>
+    <div class="metric m-blue"><div class="m-lbl">Hold Types</div><div class="m-val" style="font-size:14px" id="legalhold-type-val">FINRA</div><div class="m-sub">Regulatory inquiry</div></div>
     <div class="metric m-purple"><div class="m-lbl">Oldest Record Held</div><div class="m-val" style="font-size:15px">2024-Q3</div><div class="m-sub">Earliest captured</div></div>
   </div>
 
@@ -3796,7 +3796,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     </div>
     <div style="font-size:11px;color:var(--text-secondary);line-height:1.7">
       <div style="font-size:10px;font-weight:600;color:var(--purple);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">Why It Matters</div>
-      A promoter can reference your firm, use your referral code, or post content with your talking points after their contract ends. FINRA does not automatically absolve the firm when the contract closes. Tail monitoring provides documented evidence of surveillance and any post-contract violations.
+      A promoter can reference your firm, use your referral code, or post content with your talking points after their contract ends. <span id="tailmonitor-reg-note">FINRA does not automatically absolve the firm when the contract closes. Tail monitoring provides documented evidence of surveillance and any post-contract violations.</span>
     </div>
     <div style="font-size:11px;color:var(--text-secondary);line-height:1.7">
       <div style="font-size:10px;font-weight:600;color:var(--purple);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px">Auto-Extended for High Risk</div>
@@ -3872,7 +3872,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <div>
       <div class="ph-bc">Governance › Disclosure Checker</div>
       <div class="ph-title">Automated Disclosure Checker</div>
-      <div class="ph-sub">System scans every capture for required disclosures · Missing disclosures auto-flagged · FTC · FINRA 2210 · SEC Marketing Rule</div>
+      <div class="ph-sub" id="disclosure-sub-ref">System scans every capture for required disclosures · Missing disclosures auto-flagged · FTC · FINRA 2210 · SEC Marketing Rule</div>
     </div>
     <div class="ph-actions">
       <button class="btn btn-ghost btn-sm" onclick="go('rules')">⚙ Configure Rules →</button>
@@ -3968,7 +3968,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
           <input type="checkbox" checked style="accent-color:var(--amber);width:14px;height:14px;flex-shrink:0">
           <div>
             <div style="font-size:12px;font-weight:600">Past Performance Disclaimer</div>
-            <div style="font-size:10px;color:var(--text-muted)">Required when content references returns, gains, or investment results · FINRA 2210(d)(1) · SEC Marketing Rule</div>
+            <div style="font-size:10px;color:var(--text-muted)" id="disclosure-perf-ref">Required when content references returns, gains, or investment results · FINRA 2210(d)(1) · SEC Marketing Rule</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
@@ -4001,7 +4001,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
           <input type="checkbox" checked style="accent-color:var(--amber);width:14px;height:14px;flex-shrink:0">
           <div>
             <div style="font-size:12px;font-weight:600">Investment Risk Warning</div>
-            <div style="font-size:10px;color:var(--text-muted)">Required on all investment product promotions · FINRA 2210 · SEC Marketing Rule · Reg BI</div>
+            <div style="font-size:10px;color:var(--text-muted)" id="disclosure-risk-ref">Required on all investment product promotions · FINRA 2210 · SEC Marketing Rule · Reg BI</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
@@ -4026,7 +4026,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
           <input type="checkbox" checked style="accent-color:var(--amber);width:14px;height:14px;flex-shrink:0">
           <div>
             <div style="font-size:12px;font-weight:600">Options-Specific Risk Disclosure</div>
-            <div style="font-size:10px;color:var(--text-muted)">Required on all options content · FINRA 2220 · OCC Characteristics and Risks document · Triggers on: options, calls, puts, 0DTE, spreads, contracts</div>
+            <div style="font-size:10px;color:var(--text-muted)" id="disclosure-options-ref">Required on all options content · FINRA 2220 · OCC Characteristics and Risks document · Triggers on: options, calls, puts, 0DTE, spreads, contracts</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
@@ -4118,7 +4118,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <div>
       <div class="ph-bc">Governance › Compensation Disclosure Log</div>
       <div class="ph-title">Compensation Disclosure Log</div>
-      <div class="ph-sub">Every capture logged as Satisfied or Not Satisfied · Contract terms linked at time of capture · Immutable record · FTC · SEC Marketing Rule · FINRA 2210</div>
+      <div class="ph-sub" id="compdisclog-sub-ref">Every capture logged as Satisfied or Not Satisfied · Contract terms linked at time of capture · Immutable record · FTC · SEC Marketing Rule · FINRA 2210</div>
     </div>
     <div class="ph-actions">
       <button class="btn btn-ghost btn-sm">Filters ▾</button>
@@ -4176,7 +4176,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:11px">
       <div style="padding:10px 12px;background:var(--bg-panel);border:1px solid var(--border)">
         <div style="font-weight:600;color:var(--green);margin-bottom:4px">Proof of Active Supervision</div>
-        <div style="color:var(--text-secondary);line-height:1.6">Every capture has a logged outcome. FINRA can see that every single post was evaluated against the promoter's actual contract terms — not just a generic rule. That is active, documented supervision.</div>
+        <div style="color:var(--text-secondary);line-height:1.6" id="compdisclog-reg-note">Every capture has a logged outcome. FINRA can see that every single post was evaluated against the promoter's actual contract terms — not just a generic rule. That is active, documented supervision.</div>
       </div>
       <div style="padding:10px 12px;background:var(--bg-panel);border:1px solid var(--border)">
         <div style="font-weight:600;color:var(--blue);margin-bottom:4px">Contract Terms Linked at Time of Capture</div>
@@ -4308,7 +4308,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <div style="font-size:11px;font-weight:600;color:var(--amber)">⚠ Peer Referral Detection — 34 Unregistered Promoters Detected</div>
       <button class="btn btn-secondary btn-sm" onclick="go('network-onboard')">Review &amp; Onboard →</button>
     </div>
-    <div style="font-size:10.5px;color:var(--text-secondary);line-height:1.6">System detected 34 existing customers posting publicly about their referral links. These customers are acting as de facto promoters under SEC and FINRA rules regardless of formal registration status. They must be onboarded or the firm must instruct them to stop. Inaction is not a compliant option.</div>
+    <div style="font-size:10.5px;color:var(--text-secondary);line-height:1.6">System detected 34 existing customers posting publicly about their referral links. These customers are acting as de facto promoters <span id="network-onboard-reg-note1">under SEC and FINRA rules regardless of formal registration status. They must be onboarded or the firm must instruct them to stop. Inaction is not a compliant option.</span></div>
   </div>
 </div>
 
@@ -4371,7 +4371,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
         <div style="font-size:11px;font-weight:700;color:var(--amber)">Peer Referral Detection Queue — 34 Pending</div>
         <button class="btn btn-ghost btn-sm" onclick="showToast('All 34 sent onboarding invitations')">Invite All</button>
       </div>
-      <div style="font-size:10.5px;color:var(--text-secondary);line-height:1.6;padding:8px 12px;background:var(--amber-dim);border:1px solid var(--amber-bdr)">These customers are posting publicly about their referral links. They are de facto promoters under FINRA and SEC rules. Select action for each.</div>
+      <div style="font-size:10.5px;color:var(--text-secondary);line-height:1.6;padding:8px 12px;background:var(--amber-dim);border:1px solid var(--amber-bdr)">These customers are posting publicly about their referral links. They are de facto promoters <span id="network-onboard-reg-note2">under FINRA and SEC rules. Select action for each.</span></div>
 
       <div style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto">
         <div style="padding:10px 12px;background:var(--bg-base);border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
@@ -5781,64 +5781,49 @@ function hasCategory(dets, category) {
 // ── Tenant type label map ─────────────────────────────────────────────
 var TENANT_LABELS = {
   BD: {
-    principalTitle: 'Registered Principal',
-    principalLicense: 'Series 24',
-    regulatoryFramework: 'FINRA Rule 2210 / Rule 3110',
-    supervisionObligation: 'Written Supervisory Procedures (WSP)',
-    ceRequirement: 'FINRA Regulatory Element + Firm Element CE',
-    certificationLabel: 'Annual Compliance Certification',
-    promoterSupervisorTitle: 'Designated Supervisor',
-    evidenceFramework: 'FINRA Rule 2210(b)(1)(A)',
-    badgeLabel: 'Broker-Dealer',
-    ceNote: 'FINRA Regulatory Element completion must be tracked per registered person.',
+    principalTitle: 'Registered Principal', principalLicense: 'Series 24',
+    regulatoryFramework: 'FINRA Rule 2210 / Rule 3110', supervisionObligation: 'Written Supervisory Procedures (WSP)',
+    ceRequirement: 'FINRA Regulatory Element + Firm Element CE', certificationLabel: 'Annual Compliance Certification',
+    promoterSupervisorTitle: 'Designated Supervisor', evidenceFramework: 'FINRA Rule 2210(b)(1)(A)',
+    badgeLabel: 'Broker-Dealer', ceNote: 'FINRA Regulatory Element completion must be tracked per registered person.',
+    regulatoryBody: 'FINRA', crdLabel: 'FINRA CRD', disclosureAuthority: 'SEC / FINRA',
+    examinationLabel: 'FINRA Examination', retentionRule: 'FINRA Rule 4511 / Exchange Act Rule 17a-4',
   },
   ISSUER: {
-    principalTitle: 'Designated Compliance Contact',
-    principalLicense: 'N/A \u2014 not FINRA registered',
-    regulatoryFramework: 'SEC Regulation A / Securities Act Section 17(a)',
-    supervisionObligation: 'Offering Communication Policy',
-    ceRequirement: 'Annual Promoter Supervision Training (voluntary)',
-    certificationLabel: 'Annual Offering Compliance Review',
-    promoterSupervisorTitle: 'Compliance Reviewer',
-    evidenceFramework: 'Securities Act Section 17(a) / Reg A Rule 255',
-    badgeLabel: 'Reg A+ Issuer',
-    ceNote: 'CE is voluntary but should be documented for examination readiness.',
+    principalTitle: 'Designated Compliance Contact', principalLicense: 'N/A \u2014 not FINRA registered',
+    regulatoryFramework: 'SEC Regulation A / Securities Act Section 17(a)', supervisionObligation: 'Offering Communication Policy',
+    ceRequirement: 'Annual Promoter Supervision Training (voluntary)', certificationLabel: 'Annual Offering Compliance Review',
+    promoterSupervisorTitle: 'Compliance Reviewer', evidenceFramework: 'Securities Act Section 17(a) / Reg A Rule 255',
+    badgeLabel: 'Reg A+ Issuer', ceNote: 'CE is voluntary but should be documented for examination readiness.',
+    regulatoryBody: 'SEC', crdLabel: 'SEC File Number', disclosureAuthority: 'SEC',
+    examinationLabel: 'SEC Examination', retentionRule: 'Exchange Act Rule 17a-4',
   },
   REG_CF: {
-    principalTitle: 'Portal Principal',
-    principalLicense: 'Series 24 or equivalent',
-    regulatoryFramework: 'SEC Regulation Crowdfunding / FINRA Rules',
-    supervisionObligation: 'Funding Portal Written Supervisory Procedures',
-    ceRequirement: 'FINRA Regulatory Element + Firm Element CE',
-    certificationLabel: 'Annual Portal Compliance Certification',
-    promoterSupervisorTitle: 'Portal Compliance Officer',
-    evidenceFramework: 'Reg CF Rule 204 / FINRA Funding Portal Rules',
-    badgeLabel: 'Reg CF Portal',
-    ceNote: 'FINRA Regulatory Element completion must be tracked per registered person.',
+    principalTitle: 'Portal Principal', principalLicense: 'Series 24 or equivalent',
+    regulatoryFramework: 'SEC Regulation Crowdfunding / FINRA Rules', supervisionObligation: 'Funding Portal Written Supervisory Procedures',
+    ceRequirement: 'FINRA Regulatory Element + Firm Element CE', certificationLabel: 'Annual Portal Compliance Certification',
+    promoterSupervisorTitle: 'Portal Compliance Officer', evidenceFramework: 'Reg CF Rule 204 / FINRA Funding Portal Rules',
+    badgeLabel: 'Reg CF Portal', ceNote: 'FINRA Regulatory Element completion must be tracked per registered person.',
+    regulatoryBody: 'FINRA / SEC', crdLabel: 'FINRA CRD', disclosureAuthority: 'SEC / FINRA',
+    examinationLabel: 'FINRA / SEC Examination', retentionRule: 'FINRA Rule 4511 / Exchange Act Rule 17a-4',
   },
   FINTECH: {
-    principalTitle: 'Registered Principal',
-    principalLicense: 'Series 24',
-    regulatoryFramework: 'FINRA Rule 2210 / Rule 3110',
-    supervisionObligation: 'Written Supervisory Procedures (WSP)',
-    ceRequirement: 'FINRA Regulatory Element + Firm Element CE',
-    certificationLabel: 'Annual Compliance Certification',
-    promoterSupervisorTitle: 'Compliance Supervisor',
-    evidenceFramework: 'FINRA Rule 2210(b)(1)(A)',
-    badgeLabel: 'Fintech Platform',
-    ceNote: 'FINRA Regulatory Element completion must be tracked per registered person.',
+    principalTitle: 'Registered Principal', principalLicense: 'Series 24',
+    regulatoryFramework: 'FINRA Rule 2210 / Rule 3110', supervisionObligation: 'Written Supervisory Procedures (WSP)',
+    ceRequirement: 'FINRA Regulatory Element + Firm Element CE', certificationLabel: 'Annual Compliance Certification',
+    promoterSupervisorTitle: 'Compliance Supervisor', evidenceFramework: 'FINRA Rule 2210(b)(1)(A)',
+    badgeLabel: 'Fintech Platform', ceNote: 'FINRA Regulatory Element completion must be tracked per registered person.',
+    regulatoryBody: 'FINRA', crdLabel: 'FINRA CRD', disclosureAuthority: 'SEC / FINRA',
+    examinationLabel: 'FINRA Examination', retentionRule: 'FINRA Rule 4511 / Exchange Act Rule 17a-4',
   },
   RIA: {
-    principalTitle: 'Chief Compliance Officer',
-    principalLicense: 'Series 65 or equivalent',
-    regulatoryFramework: 'SEC Investment Advisers Act / Marketing Rule',
-    supervisionObligation: 'Compliance Policies and Procedures (Rule 206(4)-7)',
-    ceRequirement: 'Annual Marketing Rule Training (voluntary)',
-    certificationLabel: 'Annual CCO Compliance Certification',
-    promoterSupervisorTitle: 'Compliance Reviewer',
-    evidenceFramework: 'SEC Rule 206(4)-1 (Marketing Rule)',
-    badgeLabel: 'RIA',
-    ceNote: 'CE is voluntary but should be documented for examination readiness.',
+    principalTitle: 'Chief Compliance Officer', principalLicense: 'Series 65 or equivalent',
+    regulatoryFramework: 'SEC Investment Advisers Act / Marketing Rule', supervisionObligation: 'Compliance Policies and Procedures (Rule 206(4)-7)',
+    ceRequirement: 'Annual Marketing Rule Training (voluntary)', certificationLabel: 'Annual CCO Compliance Certification',
+    promoterSupervisorTitle: 'Compliance Reviewer', evidenceFramework: 'SEC Rule 206(4)-1 (Marketing Rule)',
+    badgeLabel: 'RIA', ceNote: 'CE is voluntary but should be documented for examination readiness.',
+    regulatoryBody: 'SEC', crdLabel: 'SEC File Number', disclosureAuthority: 'SEC',
+    examinationLabel: 'SEC Examination', retentionRule: 'SEC Rule 204-2',
   },
 };
 function getTenantLabel(key) {
@@ -6000,6 +5985,7 @@ async function submitLogin() {
     if (ttBadge) ttBadge.textContent = getTenantLabel('badgeLabel');
     applyRoleVisibility(currentRole);
     applyTenantTypeVisibility();
+    applyTenantLabelsToScreens();
     // Sync role switcher dropdown
     var roleSel = document.getElementById('role-switcher');
     if (roleSel) roleSel.value = currentRole;
@@ -6039,6 +6025,7 @@ async function submitLogin() {
   }
   if (currentTenantType) {
     applyTenantTypeVisibility();
+    applyTenantLabelsToScreens();
     var ttBadge = document.getElementById('tenant-type-badge');
     if (ttBadge) ttBadge.textContent = getTenantLabel('badgeLabel');
   }
@@ -6092,6 +6079,101 @@ function applyRoleVisibility(role) {
   if (cat === 'principal') {
     expandSupPanel();
   }
+}
+
+// ── Role switcher display labels by tenant type ──────────────────────
+var ROLE_DISPLAY_LABELS = {
+  BD:      { REGISTERED_PRINCIPAL: 'Principal (Series 24)', DESIGNATED_SUPERVISOR: 'Supervisor (Series 24)', COMPLIANCE_OFFICER: 'CCO (Series 24)', REVIEWER: 'Reviewer (Series 65)', TENANT_ADMIN: 'Admin' },
+  ISSUER:  { REGISTERED_PRINCIPAL: 'Designated Compliance Contact', DESIGNATED_SUPERVISOR: 'Compliance Supervisor', COMPLIANCE_OFFICER: 'Compliance Officer', REVIEWER: 'Reviewer', TENANT_ADMIN: 'Admin' },
+  REG_CF:  { REGISTERED_PRINCIPAL: 'Portal Principal (Series 24)', DESIGNATED_SUPERVISOR: 'Compliance Supervisor (Series 24)', COMPLIANCE_OFFICER: 'CCO (Series 24)', REVIEWER: 'Reviewer (Series 65)', TENANT_ADMIN: 'Admin' },
+  FINTECH: { REGISTERED_PRINCIPAL: 'Principal (Series 24)', DESIGNATED_SUPERVISOR: 'Supervisor (Series 24)', COMPLIANCE_OFFICER: 'CCO (Series 24)', REVIEWER: 'Reviewer (Series 65)', TENANT_ADMIN: 'Admin' },
+  RIA:     { REGISTERED_PRINCIPAL: 'Chief Compliance Officer (Series 65)', DESIGNATED_SUPERVISOR: 'Compliance Supervisor (Series 65)', COMPLIANCE_OFFICER: 'Compliance Officer', REVIEWER: 'Reviewer', TENANT_ADMIN: 'Admin' },
+};
+
+function applyRoleSwitcherLabels() {
+  var labels = ROLE_DISPLAY_LABELS[currentTenantType] || ROLE_DISPLAY_LABELS['BD'];
+  var sel = document.getElementById('role-switcher');
+  if (sel) {
+    Array.from(sel.options).forEach(function(opt) {
+      if (labels[opt.value]) opt.textContent = labels[opt.value];
+    });
+  }
+  // Update top bar role display
+  var urole = document.querySelector('.tb-urole');
+  if (urole && currentRole) {
+    urole.textContent = labels[currentRole] || currentRole.replace(/_/g, ' ');
+  }
+}
+
+/**
+ * Apply tenant-type-aware labels to all screens that have
+ * hardcoded regulatory language. Safe to call multiple times.
+ * Uses IDs on HTML elements + getTenantLabel().
+ */
+function applyTenantLabelsToScreens() {
+  var _s = function(id, val) { var el = document.getElementById(id); if (el && val) el.textContent = val; };
+  var _p = function(id, val) { var el = document.getElementById(id); if (el && val) el.placeholder = val; };
+
+  // Top bar regulatory badge
+  _s('tb-reg-badge', getTenantLabel('regulatoryBody'));
+
+  // screen-review
+  _s('rev-escalate-desc', 'Route to ' + getTenantLabel('principalTitle') + ' or Legal.');
+  _p('rev-reg-citation', 'e.g. ' + getTenantLabel('regulatoryFramework'));
+
+  // screen-supstatus
+  _s('supstatus-principal-label', getTenantLabel('principalTitle') + ' \u00B7 ' + getTenantLabel('principalLicense'));
+  _s('supstatus-decision-note', 'Decisions are made by the ' + getTenantLabel('principalTitle') + '.');
+
+  // screen-register
+  _s('reg-supervisor-note', 'Only ' + getTenantLabel('principalTitle') + ' and ' + getTenantLabel('promoterSupervisorTitle') + ' may be assigned supervisory responsibility for a promoter.');
+
+  // screen-export
+  _s('export-rule-label', getTenantLabel('evidenceFramework'));
+
+  // screen-preapproval
+  _s('preapproval-rule-ref', getTenantLabel('regulatoryFramework'));
+
+  // screen-progcert
+  _s('progcert-sub', getTenantLabel('regulatoryFramework') + ' \u2014 ' + getTenantLabel('principalTitle') + ' must annually certify adequacy of the supervisory system');
+  _s('progcert-checklist-title', 'Certification Checklist \u2014 ' + getTenantLabel('regulatoryFramework'));
+  _s('progcert-wsp-label', getTenantLabel('supervisionObligation') + ' reviewed and updated');
+  _s('progcert-attest-rule', 'under ' + getTenantLabel('regulatoryFramework'));
+  var progcertTextarea = document.getElementById('progcert-note');
+  if (progcertTextarea && progcertTextarea.defaultValue) {
+    progcertTextarea.defaultValue = progcertTextarea.defaultValue.replace(/applicable FINRA rules and SEC regulations/g, 'applicable ' + getTenantLabel('regulatoryFramework'));
+  }
+
+  // screen-referral
+  _s('referral-disclosure-header', 'Required Disclosures for Referral Compensation \u2014 ' + getTenantLabel('disclosureAuthority'));
+
+  // screen-contracts
+  _s('contracts-finra-limits', 'subject to ' + getTenantLabel('regulatoryBody') + ' limits');
+
+  // screen-legalhold
+  _s('legalhold-type-val', getTenantLabel('regulatoryBody'));
+  _p('nh-hold-name', 'e.g. ' + getTenantLabel('regulatoryBody') + ' Inquiry 2026-02 \u2014 Promoter review');
+  _p('nh-legal-authority', 'e.g. ' + getTenantLabel('regulatoryBody') + ' Subpoena or inquiry reference');
+
+  // screen-tailmonitor
+  _s('tailmonitor-reg-note', getTenantLabel('regulatoryBody') + ' does not automatically absolve the firm when the contract closes. Tail monitoring provides documented evidence of surveillance and any post-contract violations.');
+
+  // screen-disclosure
+  _s('disclosure-sub-ref', 'FTC \u00B7 ' + getTenantLabel('evidenceFramework'));
+  _s('disclosure-perf-ref', getTenantLabel('evidenceFramework'));
+  _s('disclosure-risk-ref', getTenantLabel('evidenceFramework'));
+  _s('disclosure-options-ref', getTenantLabel('evidenceFramework'));
+
+  // screen-compdisclog
+  _s('compdisclog-sub-ref', 'FTC \u00B7 ' + getTenantLabel('evidenceFramework'));
+  _s('compdisclog-reg-note', getTenantLabel('regulatoryBody') + ' can see that every single post was evaluated against the promoter\u2019s actual contract terms \u2014 not just a generic rule. That is active, documented supervision.');
+
+  // screen-network-onboard
+  _s('network-onboard-reg-note1', 'under ' + getTenantLabel('regulatoryBody') + ' rules regardless of formal registration status. They must be onboarded or the firm must instruct them to stop. Inaction is not a compliant option.');
+  _s('network-onboard-reg-note2', 'under ' + getTenantLabel('regulatoryBody') + ' rules. Select action for each.');
+
+  // Role switcher labels
+  applyRoleSwitcherLabels();
 }
 
 // ── Tenant type visibility ────────────────────────────────────────────
@@ -8008,6 +8090,7 @@ async function saveTenantConfig() {
     var ttBadge = document.getElementById('tenant-type-badge');
     if (ttBadge) ttBadge.textContent = getTenantLabel('badgeLabel');
     applyTenantTypeVisibility();
+    applyTenantLabelsToScreens();
     showToast('Configuration saved');
     if (statusEl) statusEl.textContent = '';
   } catch (err) {
@@ -8225,12 +8308,14 @@ async function loadUsers() {
       }
     }
 
+    // Use tenant-type-aware role labels
+    var rdl = ROLE_DISPLAY_LABELS[currentTenantType] || ROLE_DISPLAY_LABELS['BD'];
     const roleStyleMap = {
-      REGISTERED_PRINCIPAL:  { bg: 'var(--amber-dim)',   color: 'var(--amber)',          border: 'var(--amber-bdr)',   lbl: 'Principal Supervisor'  },
-      DESIGNATED_SUPERVISOR: { bg: 'var(--blue-dim)',    color: 'var(--blue)',           border: 'var(--blue-bdr)',    lbl: 'Designated Supervisor' },
-      REVIEWER:              { bg: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: 'var(--border-bright)', lbl: 'Reviewer'            },
-      COMPLIANCE_OFFICER:    { bg: 'var(--blue-dim)',    color: 'var(--blue)',           border: 'var(--blue-bdr)',    lbl: 'Compliance Officer'    },
-      TENANT_ADMIN:          { bg: 'var(--red-dim)',     color: 'var(--red)',            border: 'var(--red-bdr)',     lbl: 'Tenant Admin'          },
+      REGISTERED_PRINCIPAL:  { bg: 'var(--amber-dim)',   color: 'var(--amber)',          border: 'var(--amber-bdr)',   lbl: rdl.REGISTERED_PRINCIPAL  || 'Principal Supervisor'  },
+      DESIGNATED_SUPERVISOR: { bg: 'var(--blue-dim)',    color: 'var(--blue)',           border: 'var(--blue-bdr)',    lbl: rdl.DESIGNATED_SUPERVISOR || 'Designated Supervisor' },
+      REVIEWER:              { bg: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: 'var(--border-bright)', lbl: rdl.REVIEWER            || 'Reviewer'            },
+      COMPLIANCE_OFFICER:    { bg: 'var(--blue-dim)',    color: 'var(--blue)',           border: 'var(--blue-bdr)',    lbl: rdl.COMPLIANCE_OFFICER    || 'Compliance Officer'    },
+      TENANT_ADMIN:          { bg: 'var(--red-dim)',     color: 'var(--red)',            border: 'var(--red-bdr)',     lbl: rdl.TENANT_ADMIN          || 'Tenant Admin'          },
     };
     const statusClsMap = { ACTIVE: 'stat-active', INACTIVE: 'stat-pending', INVITED: 'stat-suspended' };
     const avatarColors = ['var(--amber)', 'var(--purple)', 'var(--cyan)', 'var(--green)', 'var(--blue)', 'var(--orange)'];
