@@ -5843,9 +5843,9 @@ function whyRoutedHere(rec) {
 }
 
 // ── Auth token ────────────────────────────────────────────────────────
-let authToken = null;
-let currentRole = null;
-let currentTenantType = null;
+let authToken = localStorage.getItem('iw_token') || null;
+let currentRole = localStorage.getItem('iw_role') || null;
+let currentTenantType = localStorage.getItem('iw_tenantType') || null;
 
 async function submitLogin() {
   const email    = document.getElementById('login-email').value.trim();
@@ -5873,6 +5873,7 @@ async function submitLogin() {
     const data = JSON.parse(text);
 
     authToken = data.token;
+    localStorage.setItem('iw_token', authToken);
 
     // Update topbar user widget with real actor info
     if (data.actor) {
@@ -5884,6 +5885,9 @@ async function submitLogin() {
       if (avatarEl) avatarEl.textContent = initials;
       if (unameEl)  unameEl.textContent  = data.actor.displayName;
       if (uroleEl)  uroleEl.textContent  = (data.actor.role || '').replace(/_/g, ' ');
+      localStorage.setItem('iw_displayName', data.actor.displayName);
+      localStorage.setItem('iw_initials', initials);
+      localStorage.setItem('iw_roleLabel', (data.actor.role || '').replace(/_/g, ' '));
     }
 
     // Update firm name from tenant
@@ -5894,6 +5898,8 @@ async function submitLogin() {
 
     currentRole = (data.actor && data.actor.role) ? data.actor.role : '';
     currentTenantType = (data.tenant && data.tenant.tenantType) ? data.tenant.tenantType : 'BD';
+    localStorage.setItem('iw_role', currentRole);
+    localStorage.setItem('iw_tenantType', currentTenantType);
     console.log('[InfluWatch] tenantType:', currentTenantType);
     var ttBadge = document.getElementById('tenant-type-badge');
     if (ttBadge) ttBadge.textContent = currentTenantType || 'BD';
@@ -5923,6 +5929,38 @@ async function submitLogin() {
     btnEl.textContent = 'SIGN IN';
   }
 }
+
+// ── Auto-restore session from localStorage ────────────────────────────
+(function autoRestore() {
+  if (!authToken) return; // no stored token — show login
+  // We have a stored token — try to use it by hiding login and restoring the shell
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-shell').style.display   = 'grid';
+  // Restore role + tenant type visibility
+  if (currentRole) {
+    applyRoleVisibility(currentRole);
+    var roleSel = document.getElementById('role-switcher');
+    if (roleSel) roleSel.value = currentRole;
+  }
+  if (currentTenantType) {
+    applyTenantTypeVisibility();
+    var ttBadge = document.getElementById('tenant-type-badge');
+    if (ttBadge) ttBadge.textContent = currentTenantType;
+  }
+  // Restore user display from localStorage
+  var storedName = localStorage.getItem('iw_displayName');
+  var storedInitials = localStorage.getItem('iw_initials');
+  var storedRoleLabel = localStorage.getItem('iw_roleLabel');
+  if (storedName) { var el = document.querySelector('.tb-uname'); if (el) el.textContent = storedName; }
+  if (storedInitials) { var el = document.querySelector('.tb-avatar'); if (el) el.textContent = storedInitials; }
+  if (storedRoleLabel) { var el = document.querySelector('.tb-urole'); if (el) el.textContent = storedRoleLabel; }
+  // Load data
+  loadDashboardMetrics();
+  updateNotificationBell();
+  checkSimStatus();
+  setInterval(function() { updateNotificationBell(); if (typeof loadDashboardMetrics === 'function') loadDashboardMetrics(); }, 30000);
+  go('dashboard');
+})();
 
 // ── Role-based visibility ─────────────────────────────────────────────────
 // Normalises InternalActorRole enum strings to a local category, then
