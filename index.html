@@ -7676,8 +7676,9 @@ async function saveTenantConfig() {
     }
   }
 
-  // Include tenantType if it changed
-  if (_tcSelectedTenantType && _tcSelectedTenantType !== (_tcOriginal?.tenantType || 'BD')) {
+  // Include tenantType — always send it so the backend has the
+  // current selection, regardless of what the original was
+  if (_tcSelectedTenantType) {
     patch.tenantType = _tcSelectedTenantType;
   }
 
