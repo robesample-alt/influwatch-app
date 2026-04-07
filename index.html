@@ -688,6 +688,9 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <div class="ph-actions">
       <button class="btn btn-secondary" onclick="go('audit')">📦 Export Evidence</button>
       <div style="width:1px;height:20px;background:var(--border)"></div>
+      <select id="sim-tenant-filter" class="fi" style="width:90px;font-size:9px;padding:2px 4px">
+        <option value="">All</option><option value="BD">BD</option><option value="ISSUER">Issuer</option><option value="REG_CF">Reg CF</option><option value="FINTECH">Fintech</option><option value="RIA">RIA</option>
+      </select>
       <button class="btn btn-ghost btn-sm" style="color:var(--cyan);font-size:9px" onclick="simulateIngest()" id="sim-ingest-btn">&#9654; Simulate Ingest</button>
       <button class="btn btn-ghost btn-sm" style="color:var(--cyan);font-size:9px" onclick="toggleAutoIngest()" id="sim-auto-btn">&#8635; Auto: OFF</button>
       <button class="btn btn-ghost btn-sm" style="color:var(--red);font-size:9px" onclick="demoReset()">&#8634; Reset Demo</button>
@@ -5850,11 +5853,17 @@ function fmtExposure(lvl) { return EXP_LEVEL_LABELS[lvl] || fmtLabel(lvl); }
 function fmtExpColor(lvl) { return EXP_LEVEL_COLORS[lvl] || ''; }
 // ── Demo Simulator controls ───────────────────────────────────────────
 var _simAutoRunning = false;
+function getSimTenantFilter() {
+  var el = document.getElementById('sim-tenant-filter');
+  return el ? el.value : '';
+}
+
 async function simulateIngest() {
   var btn = document.getElementById('sim-ingest-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Ingesting\u2026'; }
+  var ttf = getSimTenantFilter();
   try {
-    var r = await fetch('https://influwatch-backend.onrender.com/api/influwatch/debug/simulate-ingest?count=2', {
+    var r = await fetch('https://influwatch-backend.onrender.com/api/influwatch/debug/simulate-ingest?count=2' + (ttf ? '&tenantType=' + ttf : ''), {
       method: 'POST', headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {},
     });
     var d = await r.json();
@@ -5867,8 +5876,9 @@ async function simulateIngest() {
 async function toggleAutoIngest() {
   var btn = document.getElementById('sim-auto-btn');
   var endpoint = _simAutoRunning ? 'simulate-stop' : 'simulate-start';
+  var ttf = getSimTenantFilter();
   try {
-    var r = await fetch('https://influwatch-backend.onrender.com/api/influwatch/debug/' + endpoint + '?interval=300000', {
+    var r = await fetch('https://influwatch-backend.onrender.com/api/influwatch/debug/' + endpoint + '?interval=300000' + (ttf ? '&tenantType=' + ttf : ''), {
       method: 'POST', headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {},
     });
     var d = await r.json();
@@ -5885,7 +5895,8 @@ async function demoReset() {
   var btn = document.querySelector('[onclick="demoReset()"]');
   if (btn) { btn.disabled = true; btn.textContent = 'Resetting\u2026'; }
   try {
-    var r = await fetch('https://influwatch-backend.onrender.com/api/influwatch/debug/demo-reset', {
+    var ttf = getSimTenantFilter();
+    var r = await fetch('https://influwatch-backend.onrender.com/api/influwatch/debug/demo-reset' + (ttf ? '?tenantType=' + ttf : ''), {
       method: 'POST', headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {},
     });
     var d = await r.json();
