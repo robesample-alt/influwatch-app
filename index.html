@@ -1983,8 +1983,8 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
   <div class="ph">
     <div>
       <div class="ph-bc">Supervision › Certifications</div>
-      <div class="ph-title">Certifications</div>
-      <div class="ph-sub">Periodic supervisory attestation by Registered Principals · All records immutably logged · FINRA Rule 3110</div>
+      <div class="ph-title" id="cert-screen-title">Certifications</div>
+      <div class="ph-sub" id="cert-screen-sub">Periodic supervisory attestation · All records immutably logged</div>
     </div>
     <div class="ph-actions">
       <button class="btn btn-secondary btn-sm">📋 Bulk Send Requests</button>
@@ -1999,8 +1999,16 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <div class="metric m-amber"><div class="m-lbl">Completion Rate</div><div class="m-val">—</div><div class="m-sub">Phase 2 feature</div></div>
   </div>
 
-  <div style="background:var(--blue-dim);border-left:3px solid var(--blue);padding:10px 16px;margin:8px 18px;font-size:10.5px;color:var(--blue);line-height:1.65">
-    <strong>Supervisory Period Attestation</strong> — J. Harlow (Registered Principal) must periodically certify that supervision obligations were fulfilled for all assigned promoters during the period. This is distinct from individual case sign-offs and from promoter compliance attestations below.
+  <div id="cert-info-panel" style="margin:8px 18px;display:flex;flex-direction:column;gap:8px">
+    <div style="background:var(--blue-dim);border-left:3px solid var(--blue);padding:10px 16px;font-size:10.5px;color:var(--blue);line-height:1.65">
+      <strong id="cert-attestation-label">Supervisory Period Attestation</strong> — <span id="cert-attestation-desc">The designated supervisor must periodically certify that supervision obligations were fulfilled for all assigned promoters during the period.</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div style="padding:8px 10px;background:var(--bg-panel);border:1px solid var(--border);border-radius:3px"><div style="font-size:8px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px">Regulatory Framework</div><div style="font-size:10.5px" id="cert-reg-framework">—</div></div>
+      <div style="padding:8px 10px;background:var(--bg-panel);border:1px solid var(--border);border-radius:3px"><div style="font-size:8px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px">CE Requirement</div><div style="font-size:10.5px" id="cert-ce-req">—</div></div>
+      <div style="padding:8px 10px;background:var(--bg-panel);border:1px solid var(--border);border-radius:3px"><div style="font-size:8px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px">Supervision Obligation</div><div style="font-size:10.5px" id="cert-sup-obligation">—</div></div>
+    </div>
+    <div style="font-size:9.5px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-style:italic" id="cert-ce-note"></div>
   </div>
   <div style="padding:14px 18px 6px;font-size:9.5px;font-family:'IBM Plex Mono',monospace;color:var(--blue);text-transform:uppercase;letter-spacing:0.12em">Promoter Compliance Attestations — Pending</div>
   <table>
@@ -2193,7 +2201,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <div>
       <div class="ph-bc">Governance › Exports</div>
       <div class="ph-title">Evidence Exports</div>
-      <div class="ph-sub">Generate cryptographically signed evidence packages for regulatory submission</div>
+      <div class="ph-sub" id="export-screen-sub">Generate cryptographically signed evidence packages for regulatory submission</div>
     </div>
   </div>
   <div style="display:grid;grid-template-columns:300px 1fr;height:calc(100vh - 46px - 60px);overflow:hidden">
@@ -2630,8 +2638,8 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
   <div class="ph" style="flex-shrink:0">
     <div>
       <div class="ph-bc">Principal › Dashboard</div>
-      <div class="ph-title">Registered Principal Dashboard</div>
-      <div class="ph-sub">Supervisory authority · License attestation · Decision accountability · FINRA Rule 3110</div>
+      <div class="ph-title" id="desk-oversight-title">Registered Principal Dashboard</div>
+      <div class="ph-sub" id="desk-oversight-sub">Supervisory authority · License attestation · Decision accountability</div>
     </div>
     <div class="ph-actions">
       <button class="btn btn-secondary btn-sm">📋 My Decision Log</button>
@@ -5751,6 +5759,74 @@ function hasCategory(dets, category) {
   return (dets || []).some(function(d) { return getFindingCopy(d.ruleCode).category === category; });
 }
 
+// ── Tenant type label map ─────────────────────────────────────────────
+var TENANT_LABELS = {
+  BD: {
+    principalTitle: 'Registered Principal',
+    principalLicense: 'Series 24',
+    regulatoryFramework: 'FINRA Rule 2210 / Rule 3110',
+    supervisionObligation: 'Written Supervisory Procedures (WSP)',
+    ceRequirement: 'FINRA Regulatory Element + Firm Element CE',
+    certificationLabel: 'Annual Compliance Certification',
+    promoterSupervisorTitle: 'Designated Supervisor',
+    evidenceFramework: 'FINRA Rule 2210(b)(1)(A)',
+    badgeLabel: 'Broker-Dealer',
+    ceNote: 'FINRA Regulatory Element completion must be tracked per registered person.',
+  },
+  ISSUER: {
+    principalTitle: 'Designated Compliance Contact',
+    principalLicense: 'N/A \u2014 not FINRA registered',
+    regulatoryFramework: 'SEC Regulation A / Securities Act Section 17(a)',
+    supervisionObligation: 'Offering Communication Policy',
+    ceRequirement: 'Annual Promoter Supervision Training (voluntary)',
+    certificationLabel: 'Annual Offering Compliance Review',
+    promoterSupervisorTitle: 'Compliance Reviewer',
+    evidenceFramework: 'Securities Act Section 17(a) / Reg A Rule 255',
+    badgeLabel: 'Reg A+ Issuer',
+    ceNote: 'CE is voluntary but should be documented for examination readiness.',
+  },
+  REG_CF: {
+    principalTitle: 'Portal Principal',
+    principalLicense: 'Series 24 or equivalent',
+    regulatoryFramework: 'SEC Regulation Crowdfunding / FINRA Rules',
+    supervisionObligation: 'Funding Portal Written Supervisory Procedures',
+    ceRequirement: 'FINRA Regulatory Element + Firm Element CE',
+    certificationLabel: 'Annual Portal Compliance Certification',
+    promoterSupervisorTitle: 'Portal Compliance Officer',
+    evidenceFramework: 'Reg CF Rule 204 / FINRA Funding Portal Rules',
+    badgeLabel: 'Reg CF Portal',
+    ceNote: 'FINRA Regulatory Element completion must be tracked per registered person.',
+  },
+  FINTECH: {
+    principalTitle: 'Registered Principal',
+    principalLicense: 'Series 24',
+    regulatoryFramework: 'FINRA Rule 2210 / Rule 3110',
+    supervisionObligation: 'Written Supervisory Procedures (WSP)',
+    ceRequirement: 'FINRA Regulatory Element + Firm Element CE',
+    certificationLabel: 'Annual Compliance Certification',
+    promoterSupervisorTitle: 'Compliance Supervisor',
+    evidenceFramework: 'FINRA Rule 2210(b)(1)(A)',
+    badgeLabel: 'Fintech Platform',
+    ceNote: 'FINRA Regulatory Element completion must be tracked per registered person.',
+  },
+  RIA: {
+    principalTitle: 'Chief Compliance Officer',
+    principalLicense: 'Series 65 or equivalent',
+    regulatoryFramework: 'SEC Investment Advisers Act / Marketing Rule',
+    supervisionObligation: 'Compliance Policies and Procedures (Rule 206(4)-7)',
+    ceRequirement: 'Annual Marketing Rule Training (voluntary)',
+    certificationLabel: 'Annual CCO Compliance Certification',
+    promoterSupervisorTitle: 'Compliance Reviewer',
+    evidenceFramework: 'SEC Rule 206(4)-1 (Marketing Rule)',
+    badgeLabel: 'RIA',
+    ceNote: 'CE is voluntary but should be documented for examination readiness.',
+  },
+};
+function getTenantLabel(key) {
+  var labels = TENANT_LABELS[currentTenantType] || TENANT_LABELS['BD'];
+  return labels[key] || TENANT_LABELS['BD'][key] || '';
+}
+
 // ── Phase 5 — Formatting helpers ──────────────────────────────────────
 function fmtLabel(s) {
   if (!s) return '\u2014';
@@ -5902,7 +5978,7 @@ async function submitLogin() {
     localStorage.setItem('iw_tenantType', currentTenantType);
     console.log('[InfluWatch] tenantType:', currentTenantType);
     var ttBadge = document.getElementById('tenant-type-badge');
-    if (ttBadge) ttBadge.textContent = currentTenantType || 'BD';
+    if (ttBadge) ttBadge.textContent = getTenantLabel('badgeLabel');
     applyRoleVisibility(currentRole);
     applyTenantTypeVisibility();
     // Sync role switcher dropdown
@@ -5945,7 +6021,7 @@ async function submitLogin() {
   if (currentTenantType) {
     applyTenantTypeVisibility();
     var ttBadge = document.getElementById('tenant-type-badge');
-    if (ttBadge) ttBadge.textContent = currentTenantType;
+    if (ttBadge) ttBadge.textContent = getTenantLabel('badgeLabel');
   }
   // Restore user display from localStorage
   var storedName = localStorage.getItem('iw_displayName');
@@ -6809,6 +6885,20 @@ function platformIcon(platform) {
 // ── Certifications — API fetch ────────────────────────────────────────
 
 async function loadCertifications() {
+  // Tenant-type-aware labels
+  var certTitle = document.getElementById('cert-screen-title');
+  if (certTitle) certTitle.textContent = getTenantLabel('certificationLabel');
+  var certSub = document.getElementById('cert-screen-sub');
+  if (certSub) certSub.textContent = 'Periodic attestation by ' + getTenantLabel('principalTitle') + ' \u00B7 All records immutably logged \u00B7 ' + getTenantLabel('regulatoryFramework');
+  var certReg = document.getElementById('cert-reg-framework');
+  if (certReg) certReg.textContent = getTenantLabel('regulatoryFramework');
+  var certCe = document.getElementById('cert-ce-req');
+  if (certCe) certCe.textContent = getTenantLabel('ceRequirement');
+  var certSup = document.getElementById('cert-sup-obligation');
+  if (certSup) certSup.textContent = getTenantLabel('supervisionObligation');
+  var certNote = document.getElementById('cert-ce-note');
+  if (certNote) certNote.textContent = getTenantLabel('ceNote');
+
   const elLoading   = document.getElementById('cert-loading');
   const elError     = document.getElementById('cert-error');
   const elErrMsg    = document.getElementById('cert-error-msg');
@@ -7744,7 +7834,7 @@ async function saveTenantConfig() {
     _tcOriginal.tenantType = _tcSelectedTenantType || 'BD';
     currentTenantType = _tcSelectedTenantType || 'BD';
     var ttBadge = document.getElementById('tenant-type-badge');
-    if (ttBadge) ttBadge.textContent = currentTenantType;
+    if (ttBadge) ttBadge.textContent = getTenantLabel('badgeLabel');
     applyTenantTypeVisibility();
     showToast('Configuration saved');
     if (statusEl) statusEl.textContent = '';
@@ -8506,6 +8596,12 @@ async function loadPrincipal() {
   const hdrs = authToken ? { 'Authorization': 'Bearer ' + authToken } : {};
   const container = document.getElementById('principal-live-body');
   if (!container) return;
+  // Tenant-type-aware labels
+  var deskTitle = document.getElementById('desk-oversight-title');
+  if (deskTitle) deskTitle.textContent = getTenantLabel('principalTitle') + ' Dashboard';
+  var deskSub = document.getElementById('desk-oversight-sub');
+  if (deskSub) deskSub.textContent = 'Supervisory authority \u00B7 License attestation \u00B7 Decision accountability \u00B7 ' + getTenantLabel('regulatoryFramework');
+
   container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace;font-size:11px">LOADING DESK OVERSIGHT\u2026</div>';
 
   try {
@@ -8722,6 +8818,8 @@ const EXPORT_TYPE_LABELS = {
 };
 
 async function loadExports() {
+  var exportSub = document.getElementById('export-screen-sub');
+  if (exportSub) exportSub.textContent = 'Generate evidence packages for ' + getTenantLabel('regulatoryFramework') + ' examination readiness';
   const tbody = document.getElementById('export-history-tbody');
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px 0;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace;font-size:11px">LOADING EXPORT HISTORY…</td></tr>';
