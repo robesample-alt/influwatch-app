@@ -2769,22 +2769,27 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
 <div id="screen-referral" class="screen">
   <div class="ph">
     <div>
-      <div class="ph-bc">Fintech › Referral Tracking</div>
-      <div class="ph-title">Referral &amp; Affiliate Tracker</div>
-      <div class="ph-sub">Referral links · Promo codes · Per-acquisition compensation · Disclosure compliance monitoring</div>
+      <div class="ph-bc">InfluWatch / Compliance / Affiliate Links</div>
+      <div class="ph-title">Affiliate Link &amp; Referral Code Tracker</div>
+      <div class="ph-sub" id="aff-subtitle">Loading&#8230;</div>
     </div>
     <div class="ph-actions">
-      <button class="btn btn-secondary btn-sm">+ Register Link</button>
-      <button class="btn btn-primary btn-sm">⬇ Export Report</button>
+      <button class="btn btn-amber-outline btn-sm" onclick="openAddLinkDialog()">+ Register Link / Code</button>
     </div>
   </div>
-  <div class="metrics" style="grid-template-columns:repeat(5,1fr)">
-    <div class="metric m-blue"><div class="m-lbl">Active Referral Links</div><div class="m-val">23</div><div class="m-sub">Across 5 promoters</div></div>
-    <div class="metric m-green"><div class="m-lbl">Conversions (30d)</div><div class="m-val">—</div><div class="m-sub ok">+18% vs prior month</div></div>
-    <div class="metric m-amber"><div class="m-lbl">Disclosure Gaps</div><div class="m-val" style="color:var(--amber)">2</div><div class="m-sub warn">Action required</div></div>
-    <div class="metric m-orange"><div class="m-lbl">Comp Paid (30d)</div><div class="m-val">$34.2<span style="font-size:14px">k</span></div><div class="m-sub">Referral-based fees</div></div>
-    <div class="metric m-red"><div class="m-lbl">Cap Breaches</div><div class="m-val" style="color:var(--red)">1</div><div class="m-sub up">Exceeds annual cap</div></div>
+  <div class="metrics" style="grid-template-columns:repeat(4,1fr)">
+    <div class="metric m-blue"><div class="m-lbl">Active Links</div><div class="m-val" id="aff-metric-active">—</div><div class="m-sub">Confirmed &amp; tracking</div></div>
+    <div class="metric m-amber"><div class="m-lbl">Pending Review</div><div class="m-val" id="aff-metric-pending" style="color:var(--amber)">—</div><div class="m-sub warn">Auto-discovered</div></div>
+    <div class="metric m-green"><div class="m-lbl">With Referral Code</div><div class="m-val" id="aff-metric-codes" style="color:var(--green)">—</div><div class="m-sub">Code-based tracking</div></div>
+    <div class="metric m-red"><div class="m-lbl">Securities Offering</div><div class="m-val" id="aff-metric-securities" style="color:var(--red)">—</div><div class="m-sub">Higher scrutiny</div></div>
   </div>
+  <div id="aff-live-body" style="overflow-y:auto;height:calc(100vh - 46px - 60px - 55px - 28px)">
+    <div style="padding:20px;text-align:center;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:11px">LOADING&#8230;</div>
+  </div>
+</div>
+
+<!-- Old static referral tracker content hidden -->
+<div style="display:none">
   <table>
     <thead><tr><th>Link ID</th><th>Promoter</th><th>Platform</th><th>Code</th><th>Comp Structure</th><th>Rate</th><th>Conversions (30d)</th><th>Earned (30d)</th><th>Disclosed?</th><th>Status</th><th></th></tr></thead>
     <tbody>
@@ -7833,6 +7838,152 @@ async function loadUsers() {
 }
 
 // ── Principal Dashboard — API fetch ────────────────────────────────────
+// ── Affiliate Link Management ─────────────────────────────────────────
+async function loadAffiliateLinks() {
+  var hdrs = authToken ? { 'Authorization': 'Bearer ' + authToken } : {};
+  var body = document.getElementById('aff-live-body');
+  var sub  = document.getElementById('aff-subtitle');
+  if (!body) return;
+  body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace;font-size:11px">LOADING AFFILIATE LINKS\u2026</div>';
+
+  try {
+    var res = await fetch('https://influwatch-backend.onrender.com/api/influwatch/affiliate-links', { headers: hdrs });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var data = await res.json();
+    var links = data.links || [];
+
+    // Metrics
+    var active = links.filter(function(l) { return l.active; }).length;
+    var pending = links.filter(function(l) { return l.linkStatus === 'PENDING_REVIEW'; }).length;
+    var withCode = links.filter(function(l) { return l.referralCode; }).length;
+    var securities = links.filter(function(l) { return l.isSecuritiesOffering; }).length;
+    var el;
+    el = document.getElementById('aff-metric-active');  if (el) el.textContent = active;
+    el = document.getElementById('aff-metric-pending'); if (el) el.textContent = pending;
+    el = document.getElementById('aff-metric-codes');   if (el) el.textContent = withCode;
+    el = document.getElementById('aff-metric-securities'); if (el) el.textContent = securities;
+    if (sub) sub.textContent = links.length + ' total links \u00B7 ' + active + ' active \u00B7 ' + pending + ' pending review';
+
+    // Split into sections: pending review first, then active, then inactive
+    var pendingLinks = links.filter(function(l) { return l.linkStatus === 'PENDING_REVIEW'; });
+    var activeLinks  = links.filter(function(l) { return l.active && l.linkStatus !== 'PENDING_REVIEW'; });
+    var inactiveLinks = links.filter(function(l) { return !l.active && l.linkStatus !== 'PENDING_REVIEW'; });
+
+    function renderLinkRow(l) {
+      var statusBadge = l.linkStatus === 'PENDING_REVIEW'
+        ? '<span class="stat stat-pending" style="font-size:8px">Pending Review</span>'
+        : l.active
+          ? '<span class="stat stat-active" style="font-size:8px">Active</span>'
+          : '<span class="stat stat-inactive" style="font-size:8px">Inactive</span>';
+      var secBadge = l.isSecuritiesOffering
+        ? '<span style="display:inline-block;padding:1px 5px;font-size:7.5px;font-family:\'IBM Plex Mono\',monospace;background:rgba(239,68,68,0.15);color:var(--red);border:1px solid rgba(239,68,68,0.3);border-radius:2px;margin-left:4px">SECURITIES</span>'
+        : '';
+      var actions = '';
+      if (l.linkStatus === 'PENDING_REVIEW') {
+        actions = '<button class="btn btn-secondary btn-sm" style="font-size:9px" onclick="confirmAffiliateLink(\'' + esc(l.id) + '\')">Confirm</button> <button class="btn btn-ghost btn-sm" style="font-size:9px" onclick="dismissAffiliateLink(\'' + esc(l.id) + '\')">Dismiss</button>';
+      } else if (l.active) {
+        actions = '<button class="btn btn-ghost btn-sm" style="font-size:9px" onclick="deactivateAffiliateLink(\'' + esc(l.id) + '\')">Deactivate</button>';
+      }
+      return '<tr>' +
+        '<td class="mono" style="font-size:9px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(l.url) + '">' + esc(l.url) + '</td>' +
+        '<td class="mono" style="font-size:10px;color:var(--amber)">' + esc(l.referralCode || '\u2014') + '</td>' +
+        '<td style="font-size:11px">' + esc(l.promoterId) + '</td>' +
+        '<td style="font-size:10px">' + esc(fmtLabel(l.linkType)) + secBadge + '</td>' +
+        '<td>' + statusBadge + '</td>' +
+        '<td style="font-size:10px">' + actions + '</td></tr>';
+    }
+
+    var html = '';
+    if (pendingLinks.length > 0) {
+      html += '<div style="padding:8px 16px;font-size:9px;font-family:\'IBM Plex Mono\',monospace;text-transform:uppercase;letter-spacing:0.12em;color:var(--amber);border-bottom:1px solid var(--border);font-weight:600">\u26A0 Pending Review \u2014 Auto-Discovered (' + pendingLinks.length + ')</div>';
+      html += '<table><thead><tr><th>URL</th><th>Code</th><th>Promoter</th><th>Type</th><th>Status</th><th>Action</th></tr></thead><tbody>' + pendingLinks.map(renderLinkRow).join('') + '</tbody></table>';
+    }
+    html += '<div style="padding:8px 16px;font-size:9px;font-family:\'IBM Plex Mono\',monospace;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border);font-weight:600">Confirmed Links (' + activeLinks.length + ')</div>';
+    html += '<table><thead><tr><th>URL</th><th>Code</th><th>Promoter</th><th>Type</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+    html += activeLinks.length ? activeLinks.map(renderLinkRow).join('') : '<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--text-muted);font-size:11px">No confirmed affiliate links.</td></tr>';
+    html += '</tbody></table>';
+    if (inactiveLinks.length > 0) {
+      html += '<div style="padding:8px 16px;font-size:9px;font-family:\'IBM Plex Mono\',monospace;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border)">Inactive (' + inactiveLinks.length + ')</div>';
+      html += '<table><thead><tr><th>URL</th><th>Code</th><th>Promoter</th><th>Type</th><th>Status</th><th></th></tr></thead><tbody>' + inactiveLinks.map(renderLinkRow).join('') + '</tbody></table>';
+    }
+    body.innerHTML = html;
+  } catch (err) {
+    body.innerHTML = '<div style="padding:20px;color:var(--red);font-family:\'IBM Plex Mono\',monospace;font-size:11px">\u26A0 ' + esc(err.message) + '</div>';
+  }
+}
+
+async function deactivateAffiliateLink(id) {
+  var hdrs = authToken ? { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' } : {};
+  try {
+    await fetch('https://influwatch-backend.onrender.com/api/influwatch/affiliate-links/' + id + '/deactivate', { method: 'PATCH', headers: hdrs });
+    showToast('Link deactivated');
+    loadAffiliateLinks();
+  } catch (e) { showToast('Failed: ' + e.message); }
+}
+
+async function confirmAffiliateLink(id) {
+  var hdrs = authToken ? { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' } : {};
+  try {
+    // Activate + set status to CONFIRMED
+    await fetch('https://influwatch-backend.onrender.com/api/influwatch/affiliate-links/' + id + '/confirm', { method: 'PATCH', headers: hdrs });
+    showToast('Link confirmed and activated');
+    loadAffiliateLinks();
+  } catch (e) { showToast('Failed: ' + e.message); }
+}
+
+async function dismissAffiliateLink(id) {
+  var hdrs = authToken ? { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' } : {};
+  try {
+    await fetch('https://influwatch-backend.onrender.com/api/influwatch/affiliate-links/' + id + '/dismiss', { method: 'PATCH', headers: hdrs });
+    showToast('Link dismissed');
+    loadAffiliateLinks();
+  } catch (e) { showToast('Failed: ' + e.message); }
+}
+
+function openAddLinkDialog() {
+  var existing = document.getElementById('add-link-dialog');
+  if (existing) existing.remove();
+  var overlay = document.createElement('div');
+  overlay.id = 'add-link-dialog';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = '<div style="background:var(--bg-panel);border:1px solid var(--amber);border-radius:6px;width:460px;padding:22px">' +
+    '<div style="font-size:14px;font-weight:700;margin-bottom:16px">Register Affiliate Link / Referral Code</div>' +
+    '<div style="display:flex;flex-direction:column;gap:10px">' +
+      '<div><label class="fl req">Promoter ID</label><input type="text" id="add-link-promoter" class="fi" placeholder="AMB-DEMO-01" style="width:100%"></div>' +
+      '<div><label class="fl req">URL</label><input type="text" id="add-link-url" class="fi" placeholder="https://platform.com/ref/code" style="width:100%"></div>' +
+      '<div><label class="fl">Referral Code</label><input type="text" id="add-link-code" class="fi" placeholder="MARCUS20 (optional)" style="width:100%"></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+        '<div><label class="fl req">Link Type</label><select id="add-link-type" class="fi" style="width:100%"><option value="TRACKED_REFERRAL">Tracked Referral</option><option value="DIRECT_OFFERING">Direct Offering</option><option value="LANDING_PAGE">Landing Page</option><option value="GENERIC">Generic</option></select></div>' +
+        '<div><label class="fl">Securities Offering?</label><select id="add-link-securities" class="fi" style="width:100%"><option value="false">No</option><option value="true">Yes</option></select></div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="display:flex;gap:9px;justify-content:flex-end;margin-top:16px">' +
+      '<button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'add-link-dialog\').remove()">Cancel</button>' +
+      '<button class="btn btn-amber-outline btn-sm" onclick="submitAddLink()">Register Link</button>' +
+    '</div></div>';
+  document.body.appendChild(overlay);
+}
+
+async function submitAddLink() {
+  var promoter = document.getElementById('add-link-promoter')?.value?.trim();
+  var url = document.getElementById('add-link-url')?.value?.trim();
+  var code = document.getElementById('add-link-code')?.value?.trim();
+  var linkType = document.getElementById('add-link-type')?.value;
+  var securities = document.getElementById('add-link-securities')?.value === 'true';
+  if (!promoter || !url) { showToast('Promoter ID and URL are required'); return; }
+  var hdrs = { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' };
+  try {
+    var res = await fetch('https://influwatch-backend.onrender.com/api/influwatch/affiliate-links', {
+      method: 'POST', headers: hdrs,
+      body: JSON.stringify({ promoterId: promoter, url: url, referralCode: code || null, linkType: linkType, isSecuritiesOffering: securities }),
+    });
+    if (!res.ok) { var err = await res.json(); throw new Error(err.error || 'Failed'); }
+    showToast('Link registered');
+    document.getElementById('add-link-dialog')?.remove();
+    loadAffiliateLinks();
+  } catch (e) { showToast('Error: ' + e.message); }
+}
+
 async function loadPrincipal() {
   const hdrs = authToken ? { 'Authorization': 'Bearer ' + authToken } : {};
   const container = document.getElementById('principal-live-body');
@@ -9011,6 +9162,7 @@ go = function(name) {
   if (name === 'export')          loadExports();
   if (name === 'ingest')          loadIngest();
   if (name === 'preapproval')     loadPreApprovals();
+  if (name === 'referral')        loadAffiliateLinks();
   if (name === 'review')          loadReviewRecord();
   if (name === 'tailmonitor')     loadTailMonitor();
 };
