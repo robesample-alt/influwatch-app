@@ -2638,6 +2638,8 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <div class="metric m-blue"><div class="m-lbl">Revision Requested</div><div class="m-val" id="pa-count-revision" style="color:var(--blue)">—</div><div class="m-sub">Returned to promoter</div></div>
     <div class="metric m-orange"><div class="m-lbl">Due Within 24h</div><div class="m-val" id="pa-count-urgent" style="color:var(--orange)">—</div><div class="m-sub warn">Urgent</div></div>
   </div>
+  <!-- Campaign activation banner -->
+  <div id="preapproval-campaign-banner" style="display:none;margin:14px 18px 0;background:var(--amber-dim);border:1px solid var(--amber-bdr);padding:11px 14px;font-size:11px;color:var(--text-secondary)"></div>
   <!-- Section 1: Pending Requests -->
   <div style="padding:10px 16px 5px;font-size:9px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.16em;color:var(--amber);border-bottom:1px solid var(--border)">Pending Principal Sign-Off</div>
   <table>
@@ -3511,6 +3513,42 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
       <div style="margin-top:10px;padding:10px 14px;background:var(--bg-panel);border:1px solid var(--border);font-size:10.5px;color:var(--text-secondary);display:flex;align-items:center;justify-content:space-between">
         <div>Contract terms re-evaluated on every capture. Amendments, renewals, and terminations update enforcement rules automatically for all subsequent captures.</div>
         <button class="btn btn-secondary btn-sm" onclick="go('compdisclog')">View Full Disclosure Log →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Campaign Supervision Setup — Promoter-Campaign Assignments -->
+  <div style="margin:16px 18px;background:var(--bg-surface);border:1px solid var(--amber-bdr)">
+    <div style="padding:10px 14px;background:var(--amber-dim);border-bottom:1px solid var(--amber-bdr);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:10px;font-weight:600;font-family:'IBM Plex Mono',monospace;color:var(--amber);text-transform:uppercase;letter-spacing:0.1em">Campaign Supervision Setup — Promoter Assignments</div>
+      <span style="font-size:10px;color:var(--amber);font-family:'IBM Plex Mono',monospace">Principal sign-off required before campaign goes LIVE</span>
+    </div>
+    <div style="padding:14px">
+      <div style="font-size:11px;color:var(--text-secondary);line-height:1.6;margin-bottom:12px;padding:8px 12px;background:var(--amber-dim);border:1px solid var(--amber-bdr)">
+        Each campaign must have at least one assigned promoter with a linked compensation structure and a campaign policy before the principal can activate it. This is a structural supervisory determination — once activated, individual record review workload is reduced because the framework was pre-approved.
+      </div>
+      <!-- Campaign selector -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <label style="font-size:10px;font-weight:600;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.1em">Campaign</label>
+        <select id="campaign-setup-selector" class="fi" style="max-width:350px;font-size:11px" onchange="loadCampaignSetup()">
+          <option value="">Select a campaign…</option>
+        </select>
+        <span id="campaign-setup-status-badge" style="font-size:9px;font-family:'IBM Plex Mono',monospace;padding:2px 8px"></span>
+      </div>
+      <table style="margin:0">
+        <thead><tr><th>Promoter</th><th>Handle</th><th>Comp Type</th><th>Supervision Posture</th><th>Assigned Principal</th><th>Agreement Ref</th><th>Status</th><th></th></tr></thead>
+        <tbody id="campaign-promoters-tbody">
+          <tr><td colspan="8" style="text-align:center;padding:20px 0;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:11px">SELECT A CAMPAIGN ABOVE</td></tr>
+        </tbody>
+      </table>
+      <!-- Setup checklist -->
+      <div id="campaign-setup-checklist" style="display:none;margin-top:12px;padding:10px 14px;background:var(--bg-panel);border:1px solid var(--border)">
+        <div style="font-size:9px;font-weight:600;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Activation Checklist</div>
+        <div id="campaign-checklist-items" style="font-size:11px;color:var(--text-secondary);line-height:2"></div>
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <button id="campaign-activate-btn" class="btn btn-primary btn-sm" onclick="activateCampaign()" disabled>Activate Campaign</button>
+          <button id="campaign-pause-btn" class="btn btn-ghost btn-sm" onclick="pauseCampaign()" style="display:none">Pause Campaign</button>
+        </div>
       </div>
     </div>
   </div>
@@ -6185,6 +6223,7 @@ var ROLE_DISPLAY_LABELS = {
 };
 
 function applyRoleSwitcherLabels() {
+  if (!ROLE_DISPLAY_LABELS) return; // not yet initialized — skip
   var labels = ROLE_DISPLAY_LABELS[currentTenantType] || ROLE_DISPLAY_LABELS['BD'];
   var sel = document.getElementById('role-switcher');
   if (sel) {
@@ -9675,6 +9714,199 @@ async function loadContracts() {
   }
 }
 
+// ── Campaign Supervision Setup ────────────────────────────────────────
+
+var _campaignSetupCache = null; // campaign list cached per session
+
+async function populateCampaignSelector() {
+  var sel = document.getElementById('campaign-setup-selector');
+  if (!sel || sel.options.length > 1) return; // already populated
+  try {
+    // Fetch all campaigns via the debug endpoint which returns them
+    var res = await fetch('https://influwatch-backend.onrender.com/api/influwatch/content-records?limit=1', {
+      headers: { 'Authorization': 'Bearer ' + authToken },
+    });
+    // Use a simpler approach — fetch campaigns from the ambassador endpoint campaign list
+    // Actually let's use a direct query approach: fetch setup-status for known campaigns
+    var campIds = ['CAMP-AGI', 'CAMP-MTL', 'CAMP-HCD'];
+    var campaigns = [];
+    for (var i = 0; i < campIds.length; i++) {
+      try {
+        var r = await fetch('https://influwatch-backend.onrender.com/api/influwatch/campaigns/' + campIds[i] + '/setup-status', {
+          headers: { 'Authorization': 'Bearer ' + authToken },
+        });
+        if (r.ok) {
+          var data = await r.json();
+          if (data.campaign) campaigns.push(data);
+        }
+      } catch (_) {}
+    }
+    _campaignSetupCache = campaigns;
+    campaigns.forEach(function(c) {
+      var opt = document.createElement('option');
+      opt.value = c.campaign.id;
+      opt.textContent = c.campaign.name + ' (' + c.campaign.status + ')';
+      sel.appendChild(opt);
+    });
+  } catch (_) {}
+}
+
+async function loadCampaignSetup() {
+  var sel = document.getElementById('campaign-setup-selector');
+  var campaignId = sel ? sel.value : '';
+  var tbody = document.getElementById('campaign-promoters-tbody');
+  var checklist = document.getElementById('campaign-setup-checklist');
+  var badge = document.getElementById('campaign-setup-status-badge');
+
+  if (!campaignId) {
+    if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px 0;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace;font-size:11px">SELECT A CAMPAIGN ABOVE</td></tr>';
+    if (checklist) checklist.style.display = 'none';
+    if (badge) badge.textContent = '';
+    return;
+  }
+
+  if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px 0;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace;font-size:11px">LOADING…</td></tr>';
+
+  try {
+    // Fetch promoter assignments and setup status in parallel
+    var [promoRes, statusRes] = await Promise.all([
+      fetch('https://influwatch-backend.onrender.com/api/influwatch/campaigns/' + encodeURIComponent(campaignId) + '/promoters', {
+        headers: { 'Authorization': 'Bearer ' + authToken },
+      }),
+      fetch('https://influwatch-backend.onrender.com/api/influwatch/campaigns/' + encodeURIComponent(campaignId) + '/setup-status', {
+        headers: { 'Authorization': 'Bearer ' + authToken },
+      }),
+    ]);
+
+    if (!promoRes.ok) throw new Error('HTTP ' + promoRes.status);
+    if (!statusRes.ok) throw new Error('HTTP ' + statusRes.status);
+
+    var promoData = await promoRes.json();
+    var statusData = await statusRes.json();
+    var promoters = promoData.promoters || [];
+
+    // Status badge
+    if (badge) {
+      var st = statusData.campaign?.status || '—';
+      var badgeStyle = st === 'LIVE' ? 'background:var(--green-dim);color:var(--green);border:1px solid var(--green-bdr)'
+        : st === 'PAUSED' ? 'background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber-bdr)'
+        : 'background:var(--bg-panel);color:var(--text-muted);border:1px solid var(--border)';
+      badge.setAttribute('style', 'font-size:9px;font-family:\'IBM Plex Mono\',monospace;padding:2px 8px;' + badgeStyle);
+      badge.textContent = st;
+    }
+
+    // Promoter assignments table
+    if (!promoters.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px 0;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace;font-size:11px">NO PROMOTERS ASSIGNED TO THIS CAMPAIGN</td></tr>';
+    } else {
+      tbody.innerHTML = promoters.map(function(p) {
+        var compLabel = p.compensationStructure
+          ? (p.compensationStructure.compensationType || p.compensationStructure.compensationForm || '—')
+          : '—';
+        var postureLabel = p.compensationStructure?.supervisionPosture || '—';
+        var postureColor = postureLabel === 'CRITICAL' ? 'var(--red)' : postureLabel === 'HIGH' ? 'var(--amber)' : 'var(--text-muted)';
+        var principalName = p.assignedPrincipal?.displayName || '<span style="color:var(--text-muted)">Unassigned</span>';
+        var statusCls = p.status === 'ACTIVE' ? 'badge-green' : p.status === 'REMOVED' ? 'badge-red' : 'badge-blue';
+        return '<tr>'
+          + '<td style="font-weight:600;font-size:11.5px">' + esc(p.promoter?.displayName || '—') + '</td>'
+          + '<td style="font-size:10px;color:var(--text-muted)">' + esc(p.promoter?.handle || '') + '</td>'
+          + '<td style="font-size:10.5px">' + esc(compLabel) + '</td>'
+          + '<td style="font-size:10.5px;font-family:\'IBM Plex Mono\',monospace;color:' + postureColor + '">' + esc(postureLabel) + '</td>'
+          + '<td style="font-size:11px">' + principalName + '</td>'
+          + '<td style="font-size:10px;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace">' + esc(p.agreementReference || '—') + '</td>'
+          + '<td><span class="badge ' + statusCls + '">' + esc(p.status) + '</span></td>'
+          + '<td><button class="btn btn-ghost btn-sm" style="color:var(--red);font-size:10px" onclick="removeCampaignPromoter(\'' + esc(campaignId) + '\',\'' + esc(p.promoterId) + '\')">Remove</button></td>'
+          + '</tr>';
+      }).join('');
+    }
+
+    // Checklist
+    if (checklist) {
+      checklist.style.display = 'block';
+      var cl = statusData.checklist || {};
+      var items = document.getElementById('campaign-checklist-items');
+      if (items) {
+        var check = function(ok) { return ok ? '<span style="color:var(--green)">&#10003;</span>' : '<span style="color:var(--red)">&#10007;</span>'; };
+        items.innerHTML = check(cl.hasPromoters) + ' At least one promoter assigned (' + (cl.promoterCount || 0) + ')<br>'
+          + check(cl.hasPolicy) + ' Campaign policy defined<br>'
+          + check(cl.policyActivated) + ' Campaign activated by principal'
+          + (cl.activatedAt ? ' <span style="font-size:10px;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace">(' + new Date(cl.activatedAt).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' }) + ')</span>' : '');
+      }
+
+      var activateBtn = document.getElementById('campaign-activate-btn');
+      var pauseBtn = document.getElementById('campaign-pause-btn');
+      if (activateBtn) {
+        activateBtn.disabled = !statusData.readyToActivate || statusData.campaign?.status === 'LIVE';
+        activateBtn.style.display = statusData.campaign?.status === 'LIVE' ? 'none' : '';
+      }
+      if (pauseBtn) {
+        pauseBtn.style.display = statusData.campaign?.status === 'LIVE' ? '' : 'none';
+      }
+    }
+
+  } catch (err) {
+    if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px 0;color:var(--red);font-family:\'IBM Plex Mono\',monospace;font-size:11px">ERROR: ' + esc(err.message) + '</td></tr>';
+  }
+}
+
+async function activateCampaign() {
+  var sel = document.getElementById('campaign-setup-selector');
+  var campaignId = sel ? sel.value : '';
+  if (!campaignId) return;
+
+  var note = window.prompt('Activation note (optional):');
+  try {
+    var res = await fetch('https://influwatch-backend.onrender.com/api/influwatch/campaigns/' + encodeURIComponent(campaignId) + '/activate', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activationNote: note || 'Campaign activated.' }),
+    });
+    if (!res.ok) {
+      var data = await res.json().catch(function() { return {}; });
+      throw new Error(data.error || 'HTTP ' + res.status);
+    }
+    showToast('Campaign activated successfully');
+    loadCampaignSetup();
+  } catch (err) {
+    showToast('Activation failed: ' + err.message);
+  }
+}
+
+async function pauseCampaign() {
+  var sel = document.getElementById('campaign-setup-selector');
+  var campaignId = sel ? sel.value : '';
+  if (!campaignId) return;
+
+  if (!window.confirm('Pause this campaign? Content will still be ingested but flagged for principal review.')) return;
+  try {
+    var res = await fetch('https://influwatch-backend.onrender.com/api/influwatch/campaigns/' + encodeURIComponent(campaignId) + '/pause', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    showToast('Campaign paused');
+    loadCampaignSetup();
+  } catch (err) {
+    showToast('Pause failed: ' + err.message);
+  }
+}
+
+async function removeCampaignPromoter(campaignId, promoterId) {
+  if (!window.confirm('Remove this promoter from the campaign?')) return;
+  try {
+    var res = await fetch('https://influwatch-backend.onrender.com/api/influwatch/campaigns/' + encodeURIComponent(campaignId) + '/promoters/' + encodeURIComponent(promoterId), {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + authToken },
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    showToast('Promoter removed');
+    loadCampaignSetup();
+  } catch (err) {
+    showToast('Remove failed: ' + err.message);
+  }
+}
+
 // Auto-load content records when navigating to captures screen
 // ── Video Ingest ──────────────────────────────────────────────────────
 
@@ -9824,6 +10056,35 @@ function resetIngest() {
 }
 
 // ── Pre-Approval Workflow ─────────────────────────────────────────────
+
+async function loadPreApprovalCampaignBanner() {
+  var banner = document.getElementById('preapproval-campaign-banner');
+  if (!banner) return;
+  banner.style.display = 'none';
+
+  try {
+    var campIds = ['CAMP-AGI', 'CAMP-MTL', 'CAMP-HCD'];
+    var drafts = [];
+    for (var i = 0; i < campIds.length; i++) {
+      try {
+        var r = await fetch('https://influwatch-backend.onrender.com/api/influwatch/campaigns/' + campIds[i] + '/setup-status', {
+          headers: { 'Authorization': 'Bearer ' + authToken },
+        });
+        if (r.ok) {
+          var data = await r.json();
+          if (data.campaign && (data.campaign.status === 'DRAFT' || data.campaign.status === 'PAUSED')) {
+            drafts.push(data.campaign);
+          }
+        }
+      } catch (_) {}
+    }
+    if (drafts.length > 0) {
+      var names = drafts.map(function(c) { return '<strong>' + esc(c.name) + '</strong> (' + c.status + ')'; }).join(', ');
+      banner.innerHTML = '<strong style="color:var(--amber)">&#9888; Campaigns pending activation:</strong> ' + names + '. Content ingested under these campaigns will require mandatory principal review until activated. <a href="javascript:go(\'contracts\')" style="color:var(--amber);text-decoration:underline">Go to Campaign Setup →</a>';
+      banner.style.display = 'block';
+    }
+  } catch (_) {}
+}
 
 async function loadPreApprovals() {
   const pendingTbody = document.getElementById('preapproval-pending-tbody');
@@ -10122,13 +10383,13 @@ go = function(name) {
   if (name === 'register')        loadSupervisorDropdown();
   if (name === 'disclosure')      loadDisclosureFlags();
   if (name === 'tenant')          loadTenantConfig();
-  if (name === 'contracts')       loadContracts();
+  if (name === 'contracts')       { loadContracts(); populateCampaignSelector(); }
   if (name === 'legalhold')       loadLegalHolds();
   if (name === 'compdisclog')     loadDisclosureLog();
   if (name === 'progcert')        loadProgramCerts();
   if (name === 'export')          loadExports();
   if (name === 'ingest')          loadIngest();
-  if (name === 'preapproval')     loadPreApprovals();
+  if (name === 'preapproval')     { loadPreApprovals(); loadPreApprovalCampaignBanner(); }
   if (name === 'referral')        loadAffiliateLinks();
   if (name === 'rules')           loadRuleEngine();
   if (name === 'review')          loadReviewRecord();
