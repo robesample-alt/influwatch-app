@@ -6070,7 +6070,7 @@ async function submitLogin() {
   document.getElementById('main-shell').style.display   = 'grid';
   // Restore role + tenant type visibility
   if (currentRole) {
-    applyRoleVisibility(currentRole);
+    try { applyRoleVisibility(currentRole); } catch (_) {}
     var roleSel = document.getElementById('role-switcher');
     if (roleSel) roleSel.value = currentRole;
   }
