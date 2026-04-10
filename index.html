@@ -2101,6 +2101,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
             <div><label class="fl req">Last Name</label><input id="reg-last-name" class="fi" placeholder="Last name" type="text"></div>
           </div>
           <div><label class="fl req">Legal Entity / Display Name</label><input id="reg-display-name" class="fi" placeholder="e.g. Venn Capital LLC or Marcus Venn" type="text"></div>
+          <div><label class="fl req">Contact Email</label><input id="reg-email" class="fi" placeholder="promoter@example.com" type="email"><div style="margin-top:4px;font-size:9px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace">Used for the Promoter Portal magic-link login.</div></div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
             <div><label class="fl req">Risk Tier</label><select id="reg-risk-tier" class="fi"><option>Low</option><option>Medium</option><option selected>High</option><option>Critical</option></select></div>
             <div><label class="fl req">Entity Type</label><select id="reg-entity-type" class="fi"><option>Individual</option><option>LLC</option><option>Corporation</option><option>Partnership</option><option>Other</option></select></div>
@@ -8819,6 +8820,7 @@ async function registerPromoter() {
   const lastName    = (document.getElementById('reg-last-name')?.value   || '').trim();
   const displayName = (document.getElementById('reg-display-name')?.value || '').trim()
                       || [firstName, lastName].filter(Boolean).join(' ');
+  const email       = (document.getElementById('reg-email')?.value || '').trim().toLowerCase();
   const riskTierRaw = (document.getElementById('reg-risk-tier')?.value   || 'HIGH').toUpperCase();
   const supId       = (document.getElementById('reg-supervisor')?.value  || '').trim();
 
@@ -8838,6 +8840,7 @@ async function registerPromoter() {
 
   // Client-side validation
   if (!displayName) { showErr('Display name is required.'); return; }
+  if (!email)       { showErr('Contact email is required for portal access.'); return; }
   if (!handle)       { showErr('At least one social handle is required to activate monitoring.'); return; }
 
   const compStatus      = (document.getElementById('reg-comp-status')?.value       || '');
@@ -8851,7 +8854,7 @@ async function registerPromoter() {
   const supervisoryRelationship = document.getElementById('reg-supervisory-relationship')?.value || 'SUPERVISED';
 
   // Build request body
-  const body = { displayName, handle, primaryPlatform, riskTier: riskTierRaw, supervisoryRelationship };
+  const body = { displayName, handle, email, primaryPlatform, riskTier: riskTierRaw, supervisoryRelationship };
   // Only include assignedSupervisorId if value looks like a real ID (not the placeholder text)
   if (supId && supId.length < 60 && !supId.includes(' ')) body.assignedSupervisorId = supId;
 
@@ -8900,6 +8903,7 @@ async function registerPromoter() {
     document.getElementById('reg-first-name').value   = '';
     document.getElementById('reg-last-name').value    = '';
     document.getElementById('reg-display-name').value = '';
+    document.getElementById('reg-email').value        = '';
     document.getElementById('reg-risk-tier').value    = 'High';
     for (const { id } of platformMap) {
       const el = document.getElementById(id);
