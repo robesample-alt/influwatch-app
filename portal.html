@@ -428,7 +428,7 @@ async function requestLink() {
     return;
   }
   try {
-    var res = await fetch(API + '/promoter/auth/request-link', {
+    var res = await fetch(API + '/promoter-auth/request-link', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email }),
@@ -445,7 +445,7 @@ async function requestLink() {
 
 async function verifyToken(token) {
   try {
-    var res = await fetch(API + '/promoter/auth/verify', {
+    var res = await fetch(API + '/promoter-auth/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token: token }),
