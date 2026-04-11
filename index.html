@@ -580,6 +580,7 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
   <div class="nav-sec nav-sec-control">
     <div class="nav-sec-lbl">Control</div>
     <div class="nav-item active" id="nav-dashboard" onclick="go('dashboard')"><div class="nav-icon">&#9632;</div>Dashboard</div>
+    <div class="nav-item" id="nav-campaigns" onclick="go('campaigns')" data-roles="issuer compliance principal admin" data-tenant-types="BD REG_CF RIA FINTECH ISSUER"><div class="nav-icon">&#128193;</div>Campaigns</div>
     <div class="nav-item" id="nav-supstatus" onclick="go('supstatus')" data-roles="compliance principal admin"><div class="nav-icon">&#128737;</div>Supervision Status</div>
     <div class="nav-item" id="nav-promoters" onclick="go('promoters')" data-roles="issuer compliance principal admin"><div class="nav-icon">&#128100;</div>Promoter Registry</div>
     <div class="nav-item" id="nav-promoter-detail" onclick="go('promoter-detail')" style="display:none"><div class="nav-icon" style="font-size:9px">&#9492;</div>&nbsp;Detail</div>
@@ -704,6 +705,17 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
     <div class="metric m-amber"><div class="m-lbl">Pending Review</div><div class="m-val" style="color:var(--amber)" id="dash-metric-pending">—</div><div class="m-sub warn" id="dash-metric-pending-sub">loading…</div></div>
     <div class="metric m-orange"><div class="m-lbl">Escalations</div><div class="m-val" style="color:var(--orange)" id="dash-metric-escalated">—</div><div class="m-sub up" id="dash-metric-escalated-sub">loading…</div></div>
     <div class="metric m-green"><div class="m-lbl">SLA Compliance</div><div class="m-val" style="color:var(--green)" id="dash-metric-sla">—</div><div class="m-sub warn" id="dash-metric-sla-sub">loading…</div></div>
+  </div>
+
+  <!-- Campaigns at Risk widget -->
+  <div style="padding:0 20px">
+    <div class="panel">
+      <div class="panel-hdr">
+        <span class="panel-title">⚠ Campaigns at Risk</span>
+        <button class="btn btn-ghost btn-sm" onclick="go('campaigns')">View Campaign Overview →</button>
+      </div>
+      <div id="dash-campaigns-at-risk" style="padding:14px 16px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted)">Loading…</div>
+    </div>
   </div>
 
   <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:14px;padding:16px 20px">
@@ -1161,6 +1173,98 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
   </div><!-- /rev-layout -->
 </div>
 
+
+<!-- ════════════════════════════════════════
+     CAMPAIGN OVERVIEW
+════════════════════════════════════════ -->
+<div id="screen-campaigns" class="screen">
+  <div class="ph">
+    <div>
+      <div class="ph-bc">InfluWatch / Supervision / Campaigns</div>
+      <div class="ph-title">Campaign Overview</div>
+      <div class="ph-sub">Cross-campaign supervisory dashboard — risk-prioritized</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-secondary btn-sm" onclick="loadCampaignOverview()">&#8635; Refresh</button>
+    </div>
+  </div>
+
+  <div style="padding:16px 20px 24px 20px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;height:calc(100vh - 46px - 60px)">
+
+    <!-- Summary metric tiles -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+      <div class="panel" style="padding:14px 16px">
+        <div style="font-size:9.5px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;letter-spacing:0.08em;margin-bottom:6px">ACTIVE CAMPAIGNS</div>
+        <div id="camp-ov-active" style="font-size:24px;font-weight:600;color:var(--text-primary);font-family:'IBM Plex Mono',monospace">—</div>
+      </div>
+      <div class="panel" style="padding:14px 16px">
+        <div style="font-size:9.5px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;letter-spacing:0.08em;margin-bottom:6px">TOTAL PENDING REVIEW</div>
+        <div id="camp-ov-pending" style="font-size:24px;font-weight:600;color:var(--amber);font-family:'IBM Plex Mono',monospace">—</div>
+      </div>
+      <div class="panel" style="padding:14px 16px">
+        <div style="font-size:9.5px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;letter-spacing:0.08em;margin-bottom:6px">PRINCIPAL REQUIRED</div>
+        <div id="camp-ov-principal" style="font-size:24px;font-weight:600;color:var(--red);font-family:'IBM Plex Mono',monospace">—</div>
+      </div>
+      <div class="panel" style="padding:14px 16px">
+        <div style="font-size:9.5px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;letter-spacing:0.08em;margin-bottom:6px">TOTAL PROMOTERS</div>
+        <div id="camp-ov-promoters" style="font-size:24px;font-weight:600;color:var(--text-primary);font-family:'IBM Plex Mono',monospace">—</div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="panel" style="padding:12px 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:6px">
+        <label style="font-size:10px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.06em">Status</label>
+        <select id="camp-ov-status-filter" class="fi" style="width:130px;padding:5px 8px;font-size:11px" onchange="renderCampaignOverview()">
+          <option value="ALL">All</option>
+          <option value="ACTIVE">Active</option>
+          <option value="DRAFT">Draft</option>
+          <option value="PAUSED">Paused</option>
+          <option value="CLOSED">Closed</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <label style="font-size:10px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.06em">Risk</label>
+        <select id="camp-ov-risk-filter" class="fi" style="width:130px;padding:5px 8px;font-size:11px" onchange="renderCampaignOverview()">
+          <option value="ALL">All</option>
+          <option value="CRITICAL">Critical</option>
+          <option value="HIGH">High</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="LOW">Low</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:200px">
+        <label style="font-size:10px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.06em">Search</label>
+        <input id="camp-ov-search" class="fi" style="flex:1;padding:5px 8px;font-size:11px" type="text" placeholder="Campaign name…" oninput="renderCampaignOverview()">
+      </div>
+    </div>
+
+    <!-- Campaign table -->
+    <div class="panel">
+      <div class="panel-hdr"><div class="panel-title">Campaigns</div><div id="camp-ov-count" style="font-size:10px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace"></div></div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:11.5px">
+          <thead>
+            <tr style="background:var(--bg-base);border-bottom:1px solid var(--border-bright)">
+              <th style="padding:10px 12px;text-align:left;font-size:9.5px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;font-weight:500">Campaign</th>
+              <th style="padding:10px 12px;text-align:left;font-size:9.5px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;font-weight:500">Status</th>
+              <th style="padding:10px 12px;text-align:right;font-size:9.5px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;font-weight:500">Promoters</th>
+              <th style="padding:10px 12px;text-align:right;font-size:9.5px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;font-weight:500">Content (7d)</th>
+              <th style="padding:10px 12px;text-align:right;font-size:9.5px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;font-weight:500">Pending</th>
+              <th style="padding:10px 12px;text-align:right;font-size:9.5px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;font-weight:500">Principal Req'd</th>
+              <th style="padding:10px 12px;text-align:left;font-size:9.5px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;font-weight:500">Last Activity</th>
+              <th style="padding:10px 12px;text-align:left;font-size:9.5px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;font-weight:500">Risk</th>
+              <th style="padding:10px 12px;text-align:right;font-size:9.5px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;font-weight:500"></th>
+            </tr>
+          </thead>
+          <tbody id="campaign-overview-tbody">
+            <tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:11px">LOADING CAMPAIGNS…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ════════════════════════════════════════
      PROMOTER REGISTRY
@@ -7922,6 +8026,130 @@ function openAlertsQueue() {
   go('queue');
 }
 
+// ── Campaign Overview ─────────────────────────────────────────────────
+//
+// Cross-campaign supervisory dashboard. Pulls aggregated counts from
+// GET /api/influwatch/campaigns/overview, caches the result, and lets
+// the user filter/sort client-side without re-fetching.
+
+var _campaignOverviewCache = null;
+
+async function loadCampaignOverview() {
+  if (!authToken) return;
+  var tbody = document.getElementById('campaign-overview-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace;font-size:11px">LOADING CAMPAIGNS…</td></tr>';
+  try {
+    var hdrs = { headers: { 'Authorization': 'Bearer ' + authToken } };
+    var res  = await _fetchWithRetry('https://influwatch-backend.onrender.com/api/influwatch/campaigns/overview', hdrs, 2);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var data = await res.json();
+    _campaignOverviewCache = data;
+
+    // Tile metrics
+    var s = data.summary || { totalActive: 0, totalPendingReview: 0, totalPrincipalRequired: 0, totalPromoters: 0 };
+    var setEl = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
+    setEl('camp-ov-active',     s.totalActive);
+    setEl('camp-ov-pending',    s.totalPendingReview);
+    setEl('camp-ov-principal',  s.totalPrincipalRequired);
+    setEl('camp-ov-promoters',  s.totalPromoters);
+
+    renderCampaignOverview();
+  } catch (err) {
+    if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--red);font-family:\'IBM Plex Mono\',monospace;font-size:11px">ERROR LOADING CAMPAIGNS — ' + (err && err.message ? err.message : 'unknown') + '</td></tr>';
+  }
+}
+
+// Map raw campaign status to one of: ACTIVE | DRAFT | PAUSED | CLOSED
+function _normalizeCampaignStatus(raw) {
+  var s = (raw || '').toUpperCase();
+  if (s === 'LIVE' || s === 'APPROVED')                      return 'ACTIVE';
+  if (s === 'PAUSED')                                         return 'PAUSED';
+  if (s === 'CLOSED' || s === 'CANCELLED')                    return 'CLOSED';
+  return 'DRAFT'; // FORMATION, DSS_EVALUATION, DRAFT
+}
+
+function _campaignStatusBadge(raw) {
+  var bucket = _normalizeCampaignStatus(raw);
+  var bg, color, label;
+  switch (bucket) {
+    case 'ACTIVE':  bg = 'rgba(34,197,94,0.15)';  color = 'var(--green)';  label = 'ACTIVATED'; break;
+    case 'PAUSED':  bg = 'rgba(220,53,69,0.15)';  color = 'var(--red)';    label = 'PAUSED';    break;
+    case 'CLOSED':  bg = 'rgba(148,163,184,0.15)';color = '#94a3b8';       label = 'CLOSED';    break;
+    default:        bg = 'rgba(245,158,11,0.15)'; color = 'var(--amber)';  label = 'DRAFT';     break;
+  }
+  return '<span style="font-size:9px;font-family:\'IBM Plex Mono\',monospace;padding:2px 8px;background:' + bg + ';color:' + color + ';border:1px solid currentColor;letter-spacing:0.06em">' + label + '</span>';
+}
+
+function _riskBadge(level) {
+  var bg, color;
+  switch (level) {
+    case 'CRITICAL': bg = 'rgba(220,53,69,0.18)';  color = 'var(--red)';   break;
+    case 'HIGH':     bg = 'rgba(249,115,22,0.18)'; color = 'var(--orange)';break;
+    case 'MEDIUM':   bg = 'rgba(245,158,11,0.18)'; color = 'var(--amber)'; break;
+    default:         bg = 'rgba(34,197,94,0.18)';  color = 'var(--green)'; break;
+  }
+  return '<span style="font-size:9px;font-family:\'IBM Plex Mono\',monospace;padding:2px 8px;background:' + bg + ';color:' + color + ';border:1px solid currentColor;letter-spacing:0.06em">' + level + '</span>';
+}
+
+function _formatLastActivity(iso) {
+  if (!iso) return '<span style="color:var(--text-muted);font-style:italic">No activity</span>';
+  try {
+    var d = new Date(iso);
+    return '<span style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:var(--text-muted)">' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + '</span>';
+  } catch (e) { return '—'; }
+}
+
+var _RISK_RANK = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+
+function renderCampaignOverview() {
+  if (!_campaignOverviewCache) return;
+  var tbody = document.getElementById('campaign-overview-tbody');
+  if (!tbody) return;
+
+  var statusFilter = (document.getElementById('camp-ov-status-filter')?.value || 'ALL').toUpperCase();
+  var riskFilter   = (document.getElementById('camp-ov-risk-filter')?.value   || 'ALL').toUpperCase();
+  var search       = (document.getElementById('camp-ov-search')?.value || '').trim().toLowerCase();
+
+  var rows = (_campaignOverviewCache.campaigns || []).slice();
+
+  // Apply filters
+  rows = rows.filter(function(c) {
+    if (statusFilter !== 'ALL' && _normalizeCampaignStatus(c.status) !== statusFilter) return false;
+    if (riskFilter   !== 'ALL' && c.riskLevel !== riskFilter)                          return false;
+    if (search && (c.campaignName || '').toLowerCase().indexOf(search) === -1)         return false;
+    return true;
+  });
+
+  // Sort: risk desc, then pendingReview desc
+  rows.sort(function(a, b) {
+    var dr = (_RISK_RANK[b.riskLevel] || 0) - (_RISK_RANK[a.riskLevel] || 0);
+    if (dr !== 0) return dr;
+    return (b.pendingReview || 0) - (a.pendingReview || 0);
+  });
+
+  var countEl = document.getElementById('camp-ov-count');
+  if (countEl) countEl.textContent = rows.length + ' campaign' + (rows.length === 1 ? '' : 's');
+
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace;font-size:11px">No campaigns match the current filters.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(function(c) {
+    return '<tr style="border-bottom:1px solid var(--border)">'
+      + '<td style="padding:10px 12px"><div style="font-weight:600;color:var(--text-primary)">' + esc(c.campaignName || '—') + '</div><div style="font-size:9.5px;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace">' + esc(c.campaignType || '') + '</div></td>'
+      + '<td style="padding:10px 12px">' + _campaignStatusBadge(c.status) + '</td>'
+      + '<td style="padding:10px 12px;text-align:right;font-family:\'IBM Plex Mono\',monospace">' + (c.promoterCount || 0) + '</td>'
+      + '<td style="padding:10px 12px;text-align:right;font-family:\'IBM Plex Mono\',monospace">' + (c.contentThisWeek || 0) + '</td>'
+      + '<td style="padding:10px 12px;text-align:right;font-family:\'IBM Plex Mono\',monospace;color:' + ((c.pendingReview > 0) ? 'var(--amber)' : 'var(--text-muted)') + '">' + (c.pendingReview || 0) + '</td>'
+      + '<td style="padding:10px 12px;text-align:right;font-family:\'IBM Plex Mono\',monospace;color:' + ((c.principalRequired > 0) ? 'var(--red)' : 'var(--text-muted)') + ';font-weight:' + ((c.principalRequired > 0) ? '600' : '400') + '">' + (c.principalRequired || 0) + '</td>'
+      + '<td style="padding:10px 12px">' + _formatLastActivity(c.lastActivity) + '</td>'
+      + '<td style="padding:10px 12px">' + _riskBadge(c.riskLevel) + '</td>'
+      + '<td style="padding:10px 12px;text-align:right"><button class="btn btn-secondary btn-sm" onclick="go(\'contracts\')">View →</button></td>'
+      + '</tr>';
+  }).join('');
+}
+
 // ── Dashboard live metrics ────────────────────────────────────────────
 async function loadDashboardMetrics() {
   if (!authToken) return;
@@ -7973,8 +8201,56 @@ async function loadDashboardMetrics() {
       set('dash-metric-sla', sla + '%');
       set('dash-metric-sla-sub', reviewed + ' resolved · ' + escalated + ' escalated');
     }
+
+    // Campaigns at Risk widget — top 3 CRITICAL/HIGH campaigns by pending count
+    loadDashboardCampaignsAtRisk();
   } catch (e) {
     console.warn('Dashboard metrics load failed', e);
+  }
+}
+
+// ── Dashboard widget: Campaigns at Risk ───────────────────────────────
+async function loadDashboardCampaignsAtRisk() {
+  var widget = document.getElementById('dash-campaigns-at-risk');
+  if (!widget || !authToken) return;
+  try {
+    var hdrs = { headers: { 'Authorization': 'Bearer ' + authToken } };
+    var res  = await _fetchWithRetry('https://influwatch-backend.onrender.com/api/influwatch/campaigns/overview', hdrs, 2);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var data = await res.json();
+
+    var atRisk = (data.campaigns || []).filter(function(c) {
+      return c.riskLevel === 'CRITICAL' || c.riskLevel === 'HIGH';
+    });
+    atRisk.sort(function(a, b) {
+      var dr = (_RISK_RANK[b.riskLevel] || 0) - (_RISK_RANK[a.riskLevel] || 0);
+      if (dr !== 0) return dr;
+      return (b.pendingReview || 0) - (a.pendingReview || 0);
+    });
+
+    if (atRisk.length === 0) {
+      widget.innerHTML = '<div style="display:flex;align-items:center;gap:10px;color:var(--green)"><span style="font-size:14px">&#10003;</span><span>All campaigns compliant — no escalations or pending reviews.</span></div>';
+      return;
+    }
+
+    var top = atRisk.slice(0, 3);
+    widget.innerHTML = top.map(function(c) {
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">'
+        + '<div style="display:flex;align-items:center;gap:10px;flex:1">'
+        + _riskBadge(c.riskLevel)
+        + '<span style="color:var(--text-primary);font-weight:500">' + esc(c.campaignName || '—') + '</span>'
+        + '</div>'
+        + '<div style="display:flex;align-items:center;gap:14px">'
+        + '<span style="color:var(--amber)">' + (c.pendingReview || 0) + ' pending</span>'
+        + ((c.principalRequired > 0) ? '<span style="color:var(--red)">' + c.principalRequired + ' principal req\u0027d</span>' : '')
+        + '</div>'
+        + '</div>';
+    }).join('');
+    if (atRisk.length > 3) {
+      widget.innerHTML += '<div style="padding-top:8px;color:var(--text-muted);font-size:10px">+ ' + (atRisk.length - 3) + ' more — view full overview</div>';
+    }
+  } catch (e) {
+    widget.innerHTML = '<span style="color:var(--text-muted)">Unable to load campaign risk — ' + (e && e.message ? e.message : 'unknown') + '</span>';
   }
 }
 
@@ -11347,6 +11623,7 @@ go = function(name) {
   if (name === 'compensation-config') loadCompStructures();
   if (name === 'review')          loadReviewRecord();
   if (name === 'tailmonitor')     loadTailMonitor();
+  if (name === 'campaigns')       loadCampaignOverview();
 };
 
 // ── Review Screen enrichment — compensation-first display ─────────────────
