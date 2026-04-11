@@ -2149,6 +2149,20 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
             <span id="reg-derived-txn" style="font-size:9px;font-family:'IBM Plex Mono',monospace;padding:2px 8px;border-radius:2px">—</span>
             <span id="reg-derived-posture" style="font-size:9px;font-family:'IBM Plex Mono',monospace;padding:2px 8px;border-radius:2px">—</span>
           </div>
+
+          <!-- Counsel-reviewed acknowledgment alert (HIGH/CRITICAL postures only) -->
+          <div id="reg-comp-ack-alert" style="display:none;padding:12px 14px;background:rgba(220,53,69,0.10);border:1px solid rgba(220,53,69,0.5);border-radius:3px">
+            <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px">
+              <span style="color:var(--red);font-size:14px;line-height:1;flex-shrink:0">&#9888;</span>
+              <div style="font-size:11px;color:var(--text-primary);line-height:1.5">
+                <strong style="color:var(--red)">Warning:</strong> Transaction-based compensation creates heightened supervisory obligations under FINRA Rule 3110 and potential unregistered broker-dealer risk under Section 15(a) of the Securities Exchange Act. By registering this promoter you confirm this arrangement has been reviewed by qualified securities counsel and your Written Supervisory Procedures address this compensation type.
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding-top:8px;border-top:1px solid rgba(220,53,69,0.3)">
+              <input type="checkbox" id="reg-comp-ack-checkbox" style="accent-color:var(--red);width:14px;height:14px;flex-shrink:0">
+              <label for="reg-comp-ack-checkbox" style="font-size:11px;cursor:pointer;line-height:1.4">I acknowledge this compensation arrangement and confirm our WSPs address the associated supervisory obligations.</label>
+            </div>
+          </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
             <div><label class="fl">Product Type</label><select id="reg-product-type" class="fi" onchange="updateCompDerived()"><option value="REG_D">Reg D</option><option value="REG_A">Reg A</option><option value="REG_CF">Reg CF</option><option value="FUND">Fund</option><option value="ADVISORY_SERVICE">Advisory Service</option><option value="FINTECH">Fintech</option><option value="OTHER">Other</option></select></div>
             <div><label class="fl">Is Security Linked</label><select id="reg-security-linked" class="fi" onchange="updateCompDerived()"><option value="auto" selected>Auto-derive</option><option value="true">Yes</option><option value="false">No</option></select></div>
@@ -8823,6 +8837,14 @@ function updateCompDerived() {
     postureEl.title = postureTips[info.posture] || '';
   }
 
+  // Show the counsel-reviewed acknowledgment alert when posture is HIGH
+  // or CRITICAL — i.e. transaction-based or potentially-transactional
+  // arrangements that create heightened supervisory obligations.
+  var ackAlert = document.getElementById('reg-comp-ack-alert');
+  var ackChk   = document.getElementById('reg-comp-ack-checkbox');
+  var requiresAck = info.posture === 'CRITICAL' || info.posture === 'HIGH';
+  if (ackAlert) ackAlert.style.display = requiresAck ? 'block' : 'none';
+  if (ackChk && !requiresAck) ackChk.checked = false;
 }
 
 async function registerPromoter() {
@@ -8884,6 +8906,13 @@ async function registerPromoter() {
     const compInfo = COMP_TYPE_CLASSIFICATION[regCompType] || COMP_TYPE_CLASSIFICATION.OTHER;
     const regProductType = document.getElementById('reg-product-type')?.value || 'OTHER';
     const regSecLinked = document.getElementById('reg-security-linked')?.value;
+    const ackChk = document.getElementById('reg-comp-ack-checkbox');
+    const ackChecked = ackChk ? ackChk.checked === true : false;
+    const ackRequired = compInfo.posture === 'CRITICAL' || compInfo.posture === 'HIGH';
+    if (ackRequired && !ackChecked) {
+      showErr('You must acknowledge the supervisory obligations alert before registering a promoter with this compensation type.');
+      return;
+    }
     body.compensation = {
       compensationType: regCompType,
       productType: regProductType,
@@ -8892,6 +8921,7 @@ async function registerPromoter() {
       supervisionPosture: compInfo.posture,
       transactionalityClass: compInfo.cls,
       compensationRate: document.getElementById('reg-comp-rate')?.value || null,
+      acknowledged: ackChecked,
     };
   }
 
@@ -8925,6 +8955,10 @@ async function registerPromoter() {
     document.getElementById('reg-display-name').value = '';
     document.getElementById('reg-email').value        = '';
     document.getElementById('reg-risk-tier').value    = 'High';
+    var ackChkClear = document.getElementById('reg-comp-ack-checkbox');
+    if (ackChkClear) ackChkClear.checked = false;
+    var ackAlertClear = document.getElementById('reg-comp-ack-alert');
+    if (ackAlertClear) ackAlertClear.style.display = 'none';
     for (const { id } of platformMap) {
       const el = document.getElementById(id);
       if (el) el.value = '';
