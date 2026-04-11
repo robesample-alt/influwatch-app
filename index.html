@@ -5893,6 +5893,26 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
   <div style="color:var(--text-muted);font-size:9px;word-break:break-all">a4f2d8c1b9e7f3d0c2a1e8b4f7c9d3e0a2b8f1c4d7e2a9b3f8c1d4e7a0b2c5d8e</div>
 </div>
 
+<!-- Portal Submission Review confirmation modal -->
+<div id="portalReviewModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;align-items:center;justify-content:center">
+  <div style="background:var(--bg-elevated);border:1px solid var(--border-bright);width:440px;max-width:92vw;font-family:'Inter',sans-serif">
+    <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div id="portalReviewModalTitle" style="font-size:13px;font-weight:600;color:var(--text-primary)">Confirm Action</div>
+      <button type="button" onclick="closePortalReviewModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;line-height:1">&times;</button>
+    </div>
+    <div style="padding:16px 18px">
+      <div id="portalReviewModalBody" style="font-size:12px;color:var(--text-secondary);line-height:1.5;margin-bottom:12px"></div>
+      <label id="portalReviewNotesLabel" style="display:block;font-size:10.5px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Review Notes</label>
+      <textarea id="portalReviewNotesInput" rows="4" placeholder="Enter review notes…" style="width:100%;background:var(--bg-base);border:1px solid var(--border);color:var(--text-primary);padding:8px 10px;font-family:'Inter',sans-serif;font-size:12px;resize:vertical;box-sizing:border-box"></textarea>
+      <div id="portalReviewNotesError" style="display:none;color:var(--red);font-size:10px;font-family:'IBM Plex Mono',monospace;margin-top:6px">Rejection reason is required.</div>
+    </div>
+    <div style="padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="closePortalReviewModal()">Cancel</button>
+      <button id="portalReviewConfirmBtn" type="button" class="btn btn-primary btn-sm" onclick="confirmPortalReview()">Confirm</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- Toast notification -->
 <div id="generalToast" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg-elevated);border:1px solid var(--border-bright);padding:12px 18px;font-family:'IBM Plex Mono',monospace;font-size:11px;z-index:9999;color:var(--text-primary);white-space:nowrap"></div>
@@ -10889,14 +10909,84 @@ async function loadPortalSubmissions() {
   }
 }
 
-async function reviewPortalSubmission(id, status) {
-  var notes = '';
-  if (status === 'REJECTED') {
-    notes = window.prompt('Reason for rejection (visible to promoter):');
-    if (!notes) return;
+// Open the confirmation modal. No API call fires here — clicking Cancel
+// dismisses the dialog and leaves the submission untouched. The API call
+// only happens when the user clicks Confirm inside the modal.
+function reviewPortalSubmission(id, status) {
+  var modal     = document.getElementById('portalReviewModal');
+  var title     = document.getElementById('portalReviewModalTitle');
+  var body      = document.getElementById('portalReviewModalBody');
+  var notesEl   = document.getElementById('portalReviewNotesInput');
+  var labelEl   = document.getElementById('portalReviewNotesLabel');
+  var errorEl   = document.getElementById('portalReviewNotesError');
+  var confirmBt = document.getElementById('portalReviewConfirmBtn');
+  if (!modal || !title || !body || !notesEl || !labelEl || !errorEl || !confirmBt) return;
+
+  var isReject = status === 'REJECTED';
+  title.textContent = isReject ? 'Reject Submission' : 'Approve Submission';
+  body.textContent  = isReject
+    ? 'This submission will be marked REJECTED and returned to the promoter for revision. The rejection reason below will be visible to them.'
+    : 'This submission will be marked APPROVED and the promoter will be notified. Review notes are optional.';
+  labelEl.textContent  = isReject ? 'REJECTION REASON (REQUIRED)' : 'REVIEW NOTES (OPTIONAL)';
+  notesEl.placeholder  = isReject ? 'Explain why this submission is being rejected…' : 'Optional notes for the promoter…';
+  notesEl.value        = '';
+  errorEl.style.display = 'none';
+
+  confirmBt.textContent = isReject ? 'Confirm Rejection' : 'Confirm Approval';
+  confirmBt.className   = isReject
+    ? 'btn btn-sm'
+    : 'btn btn-primary btn-sm';
+  if (isReject) {
+    confirmBt.style.background = 'var(--red)';
+    confirmBt.style.color      = '#ffffff';
+    confirmBt.style.border     = '1px solid var(--red)';
   } else {
-    notes = window.prompt('Approval note (optional):') || '';
+    confirmBt.style.background = '';
+    confirmBt.style.color      = '';
+    confirmBt.style.border     = '';
   }
+
+  // Stash the pending action on the modal itself so confirm handler can read it
+  modal.dataset.submissionId     = id;
+  modal.dataset.submissionStatus = status;
+  modal.style.display            = 'flex';
+
+  // Focus the textarea so the CCO can type immediately
+  setTimeout(function() { notesEl.focus(); }, 50);
+}
+
+function closePortalReviewModal() {
+  var modal = document.getElementById('portalReviewModal');
+  if (!modal) return;
+  modal.style.display = 'none';
+  modal.dataset.submissionId     = '';
+  modal.dataset.submissionStatus = '';
+}
+
+async function confirmPortalReview() {
+  var modal     = document.getElementById('portalReviewModal');
+  var notesEl   = document.getElementById('portalReviewNotesInput');
+  var errorEl   = document.getElementById('portalReviewNotesError');
+  var confirmBt = document.getElementById('portalReviewConfirmBtn');
+  if (!modal || !notesEl || !errorEl || !confirmBt) return;
+
+  var id     = modal.dataset.submissionId;
+  var status = modal.dataset.submissionStatus;
+  var notes  = (notesEl.value || '').trim();
+  if (!id || !status) { closePortalReviewModal(); return; }
+
+  // Reject requires a reason
+  if (status === 'REJECTED' && !notes) {
+    errorEl.style.display = 'block';
+    notesEl.focus();
+    return;
+  }
+  errorEl.style.display = 'none';
+
+  // Fire the API call
+  confirmBt.disabled    = true;
+  var originalLabel     = confirmBt.textContent;
+  confirmBt.textContent = 'Submitting…';
   try {
     var res = await fetch('https://influwatch-backend.onrender.com/api/influwatch/promoter-submissions/' + encodeURIComponent(id) + '/review', {
       method: 'PATCH',
@@ -10904,10 +10994,13 @@ async function reviewPortalSubmission(id, status) {
       body: JSON.stringify({ status: status, reviewNotes: notes }),
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
+    closePortalReviewModal();
     showToast('Submission ' + status.toLowerCase());
     loadPortalSubmissions();
   } catch (err) {
     showToast('Failed: ' + err.message);
+    confirmBt.disabled    = false;
+    confirmBt.textContent = originalLabel;
   }
 }
 
