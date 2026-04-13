@@ -2206,6 +2206,19 @@ html body:not([data-role="promoter"]) .promoter-only { display:none !important; 
           </div>
           <div><label class="fl req">Legal Entity / Display Name</label><input id="reg-display-name" class="fi" placeholder="e.g. Venn Capital LLC or Marcus Venn" type="text"></div>
           <div><label class="fl req">Contact Email</label><input id="reg-email" class="fi" placeholder="promoter@example.com" type="email"><div style="margin-top:4px;font-size:9px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace">Used for the Promoter Portal magic-link login.</div></div>
+
+          <!-- ISSUER-only — Relationship to Issuer -->
+          <div id="reg-associated-person-block" style="display:none;padding:10px 12px;background:var(--bg-base);border:1px solid var(--border-bright)">
+            <label class="fl">Relationship to Issuer</label>
+            <div style="font-size:11px;color:var(--text-secondary);line-height:1.5;margin-bottom:8px">Is this person an officer, director, employee, or 10%+ shareholder of the issuer?</div>
+            <div style="display:flex;gap:14px;align-items:center">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px"><input type="radio" name="reg-associated-person" id="reg-assoc-no" value="no" checked onchange="updateAssociatedPersonUi()"> No — external promoter</label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px"><input type="radio" name="reg-associated-person" id="reg-assoc-yes" value="yes" onchange="updateAssociatedPersonUi()"> Yes — associated person</label>
+            </div>
+            <div id="reg-assoc-note" style="display:none;margin-top:10px;padding:10px 12px;background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.4);border-radius:3px;font-size:10.5px;color:var(--text-primary);line-height:1.5">
+              <strong style="color:var(--amber)">Note:</strong> Associated persons of the issuer are exempt from broker-dealer registration requirements when promoting the issuer's own offering under Securities Act Section 4(a)(2), Reg A Rule 255(b), and Reg CF Rule 204. Anti-fraud and disclosure rules still apply. Compensation type is defaulted to <em>Equity / Carry (Non-Transactional)</em>.
+            </div>
+          </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
             <div><label class="fl req">Risk Tier</label><select id="reg-risk-tier" class="fi"><option>Low</option><option>Medium</option><option selected>High</option><option>Critical</option></select></div>
             <div><label class="fl req">Entity Type</label><select id="reg-entity-type" class="fi"><option>Individual</option><option>LLC</option><option>Corporation</option><option>Partnership</option><option>Other</option></select></div>
@@ -8434,6 +8447,7 @@ async function loadPromoters() {
       return;
     }
 
+    const isIssuerTenant = currentTenantType === 'ISSUER';
     tbody.innerHTML = ambassadors.map(a => {
       const riskSev  = a.riskTier ? (riskSevMap[a.riskTier] || '') : '';
       const riskLbl  = a.riskTier ? (a.riskTier.charAt(0) + a.riskTier.slice(1).toLowerCase()) : '—';
@@ -8443,10 +8457,19 @@ async function loadPromoters() {
       const sup      = a.assignedSupervisor ? a.assignedSupervisor.displayName : 'Unassigned';
       const flagCount = a.flagCount ?? 0;
       const flagColor = flagCount > 5 ? 'var(--red)' : flagCount > 0 ? 'var(--amber)' : 'var(--text-muted)';
+      // ISSUER-only — Associated Person / External Promoter badge
+      let apBadge = '';
+      if (isIssuerTenant) {
+        if (a.isAssociatedPerson === true) {
+          apBadge = ' <span style="font-size:8px;font-family:\'IBM Plex Mono\',monospace;padding:1px 6px;background:rgba(59,130,246,0.18);color:#3b82f6;border:1px solid currentColor;letter-spacing:0.05em;margin-left:6px;vertical-align:middle">ASSOC. PERSON</span>';
+        } else {
+          apBadge = ' <span style="font-size:8px;font-family:\'IBM Plex Mono\',monospace;padding:1px 6px;background:rgba(148,163,184,0.18);color:#94a3b8;border:1px solid currentColor;letter-spacing:0.05em;margin-left:6px;vertical-align:middle">EXTERNAL</span>';
+        }
+      }
       return `<tr onclick="selectAndViewPromoter('${esc(a.id)}')" style="cursor:pointer">
         <td style="text-align:center;width:24px"><button class="btn btn-ghost" style="padding:2px 6px;font-size:10px;color:var(--text-muted)" onclick="togglePromoterExpand('${esc(a.id)}');event.stopPropagation()" id="promo-expand-btn-${esc(a.id)}">&#9654;</button></td>
         <td class="mono" style="font-size:9.5px">${esc(a.id.slice(-6).toUpperCase())}</td>
-        <td><div style="font-weight:600">${esc(a.displayName)}</div><div style="font-size:9.5px;color:var(--text-muted)">@${esc(a.handle)}</div></td>
+        <td><div style="font-weight:600">${esc(a.displayName)}${apBadge}</div><div style="font-size:9.5px;color:var(--text-muted)">@${esc(a.handle)}</div></td>
         <td><span style="font-size:9.5px;color:var(--text-secondary)">${esc(plat)}</span></td>
         <td>${riskSev ? `<span class="sev ${esc(riskSev)}" style="font-size:9px">${esc(riskLbl)}</span>` : '<span style="color:var(--text-muted);font-size:9.5px">—</span>'}</td>
         <td><span style="color:var(--text-muted);font-size:9.5px">—</span></td>
@@ -9060,6 +9083,42 @@ async function loadSupervisorDropdown() {
   } catch (err) {
     sel.innerHTML = '<option value="" disabled selected>Could not load supervisors</option>';
   }
+  // Show or hide the ISSUER-only "Relationship to Issuer" block based
+  // on the current tenant type — only ISSUER tenants distinguish
+  // associated persons from external promoters.
+  var apBlock = document.getElementById('reg-associated-person-block');
+  if (apBlock) {
+    apBlock.style.display = (currentTenantType === 'ISSUER') ? 'block' : 'none';
+  }
+  // Reset the toggle to "No" each time the form is opened
+  var noRadio = document.getElementById('reg-assoc-no');
+  if (noRadio) noRadio.checked = true;
+  if (typeof updateAssociatedPersonUi === 'function') updateAssociatedPersonUi();
+}
+
+// Toggle handler — when the user marks the promoter as an associated
+// person, default the compensation type to EQUITY_OR_CARRY_NON_TRANSACTIONAL,
+// hide the counsel-acknowledgment alert, and surface the regulatory note.
+function updateAssociatedPersonUi() {
+  var yesRadio = document.getElementById('reg-assoc-yes');
+  var note     = document.getElementById('reg-assoc-note');
+  var compSel  = document.getElementById('reg-comp-type');
+  var ackAlert = document.getElementById('reg-comp-ack-alert');
+  var ackChk   = document.getElementById('reg-comp-ack-checkbox');
+  var isAP     = !!(yesRadio && yesRadio.checked);
+
+  if (note) note.style.display = isAP ? 'block' : 'none';
+
+  if (isAP) {
+    if (compSel) {
+      compSel.value = 'EQUITY_OR_CARRY_NON_TRANSACTIONAL';
+      if (typeof updateCompDerived === 'function') updateCompDerived();
+    }
+    // Suppress the counsel-reviewed acknowledgment alert — it does not
+    // apply to associated persons of the issuer.
+    if (ackAlert) ackAlert.style.display = 'none';
+    if (ackChk)   ackChk.checked = false;
+  }
 }
 
 // ── Register Promoter — form submission ────────────────────────────────
@@ -9171,8 +9230,12 @@ async function registerPromoter() {
 
   const supervisoryRelationship = document.getElementById('reg-supervisory-relationship')?.value || 'SUPERVISED';
 
+  // ISSUER tenants only — associated person flag
+  const apYesRadio = document.getElementById('reg-assoc-yes');
+  const isAssociatedPerson = (currentTenantType === 'ISSUER') && !!(apYesRadio && apYesRadio.checked);
+
   // Build request body
-  const body = { displayName, handle, email, primaryPlatform, riskTier: riskTierRaw, supervisoryRelationship };
+  const body = { displayName, handle, email, primaryPlatform, riskTier: riskTierRaw, supervisoryRelationship, isAssociatedPerson };
   // Only include assignedSupervisorId if value looks like a real ID (not the placeholder text)
   if (supId && supId.length < 60 && !supId.includes(' ')) body.assignedSupervisorId = supId;
 
@@ -9184,7 +9247,10 @@ async function registerPromoter() {
     const regSecLinked = document.getElementById('reg-security-linked')?.value;
     const ackChk = document.getElementById('reg-comp-ack-checkbox');
     const ackChecked = ackChk ? ackChk.checked === true : false;
-    const ackRequired = compInfo.posture === 'CRITICAL' || compInfo.posture === 'HIGH';
+    // Associated persons of the issuer are exempt from the counsel ack
+    // requirement — their economic interest is ownership, not a paid
+    // promotion arrangement.
+    const ackRequired = !isAssociatedPerson && (compInfo.posture === 'CRITICAL' || compInfo.posture === 'HIGH');
     if (ackRequired && !ackChecked) {
       showErr('You must acknowledge the supervisory obligations alert before registering a promoter with this compensation type.');
       return;
@@ -9235,6 +9301,9 @@ async function registerPromoter() {
     if (ackChkClear) ackChkClear.checked = false;
     var ackAlertClear = document.getElementById('reg-comp-ack-alert');
     if (ackAlertClear) ackAlertClear.style.display = 'none';
+    var apResetNo = document.getElementById('reg-assoc-no');
+    if (apResetNo) apResetNo.checked = true;
+    if (typeof updateAssociatedPersonUi === 'function') updateAssociatedPersonUi();
     for (const { id } of platformMap) {
       const el = document.getElementById(id);
       if (el) el.value = '';
